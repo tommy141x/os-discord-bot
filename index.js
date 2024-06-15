@@ -1,69 +1,120 @@
-// index.js
-
 const express = require("express");
-const { Client, Intents } = require("discord.js");
+const session = require("express-session");
+const FileStore = require("session-file-store")(session);
+const passport = require("passport");
+const { Client, GatewayIntentBits } = require("discord.js");
 const config = require("./config.json");
+
+// Define the routes
+const loginRoute = require("./routes/login");
+const mainRoute = require("./routes/main");
+const overviewRoute = require("./routes/overview");
+/*
+const serverSettingsRoute = require("./routes/serverSettings");
+const embedMessagesRoute = require("./routes/embedMessages");
+
+const utilityRoute = require("./routes/utility");
+const moderationRoute = require("./routes/moderation");
+const automodRoute = require("./routes/automod");
+const welcomeGoodbyeRoute = require("./routes/welcomeGoodbye");
+const autoResponderRoute = require("./routes/autoResponder");
+const levelingSystemRoute = require("./routes/levelingSystem");
+const autoRolesRoute = require("./routes/autoRoles");
+const logsRoute = require("./routes/logs");
+const colorsRoute = require("./routes/colors");
+const selfAssignableRolesRoute = require("./routes/selfAssignableRoles");
+const starboardRoute = require("./routes/starboard");
+const temporaryChannelsRoute = require("./routes/temporaryChannels");
+const antiRaidRoute = require("./routes/antiRaid");
+
+const socialAlerts = require("./routes/socialAlerts");
+
+const controlPanelLogsRoute = require("./routes/controlPanelLogs");
+const modActionsRoute = require("./routes/modActions");
+*/
+
+// Init Express
 
 const app = express();
 const port = process.env.PORT || config.port;
 
 // Web server
-app.get("/", (req, res) => {
-  res.send(`
-    <h1>Dashboard</h1>
-    <button onclick="location.href='/page1'">Go to Page 1</button>
-    <button onclick="location.href='/page2'">Go to Page 2</button>
-    <br>
-    <button onclick="changeBotStatus('Online')">Set Bot Status Online</button>
-    <button onclick="changeBotStatus('Idle')">Set Bot Status Idle</button>
-    <button onclick="changeBotStatus('DND')">Set Bot Status Do Not Disturb</button>
-    <script>
-      function changeBotStatus(status) {
-        fetch('/status', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ status })
-        });
-      }
-    </script>
-  `);
+app.use(
+  session({
+    secret: config.sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    store: new FileStore({
+      retries: 1, // Retry failed write operations only once
+      fileExtension: ".json",
+      ttl: 3600, // Set the time-to-live for sessions to 1 hour
+      path: "./sessions", // Define a custom directory for session files
+      reapInterval: 3600, // Cleanup expired sessions every hour
+      logFn: function () {}, // Suppress logging
+    }),
+  }),
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Initialize Discord client
+
+app.use((req, res, next) => {
+  req.client = client;
+  next();
 });
 
-app.get("/page1", (req, res) => {
-  res.send(`
-    <h1>Page 1</h1>
-    <button onclick="location.href='/'">Go back to Dashboard</button>
-  `);
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
-app.get("/page2", (req, res) => {
-  res.send(`
-    <h1>Page 2</h1>
-    <button onclick="location.href='/'">Go back to Dashboard</button>
-  `);
-});
-
-app.post("/status", express.json(), (req, res) => {
-  const { status } = req.body;
-  if (status === "Online" || status === "Idle" || status === "DND") {
-    client.user.setStatus(status);
-    res.send(`Bot status set to ${status}`);
-  } else {
-    res.status(400).send("Invalid status");
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Web server is running on port ${port}`);
-});
-
-// Discord bot
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+client.login(config.botToken);
 
 client.once("ready", () => {
   console.log("Discord bot is ready!");
 });
 
-client.login(config.discord_token);
+// Authentication middleware
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/login");
+}
+
+// Apply middleware to all routes except the login route
+app.use("/login", loginRoute);
+app.use("/", ensureAuthenticated, mainRoute);
+app.use("/overview", ensureAuthenticated, overviewRoute);
+/*
+app.use("/server-settings", ensureAuthenticated, serverSettingsRoute);
+app.use("/embed-messages", ensureAuthenticated, embedMessagesRoute);
+
+app.use("/utility", ensureAuthenticated, utilityRoute);
+app.use("/moderation", ensureAuthenticated, moderationRoute);
+app.use("/automod", ensureAuthenticated, automodRoute);
+app.use("/welcome-goodbye", ensureAuthenticated, welcomeGoodbyeRoute);
+app.use("/auto-responder", ensureAuthenticated, autoResponderRoute);
+app.use("/leveling-system", ensureAuthenticated, levelingSystemRoute);
+app.use("/auto-roles", ensureAuthenticated, autoRolesRoute);
+app.use("/logs", ensureAuthenticated, logsRoute);
+app.use("/colors", ensureAuthenticated, colorsRoute);
+app.use("/self-assignable-roles", ensureAuthenticated, selfAssignableRolesRoute);
+app.use("/starboard", ensureAuthenticated, starboardRoute);
+app.use("/temporary-channels", ensureAuthenticated, temporaryChannelsRoute);
+app.use("/anti-raid", ensureAuthenticated, antiRaidRoute);
+
+app.use("/social-alerts", ensureAuthenticated, socialAlerts);
+
+app.use("/control-panel-logs", ensureAuthenticated, controlPanelLogsRoute);
+app.use("/mod-actions", ensureAuthenticated, modActionsRoute);
+*/
+app.get("/logout", (req, res) => {
+  req.logout(() => {
+    res.redirect("/login");
+  });
+});
+
+app.listen(port, () => {
+  console.log(`Web server is running on port ${port}`);
+});
