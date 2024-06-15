@@ -1,0 +1,19 @@
+{
+  "name": "os-discord-bot",
+  "version": "1.0.0",
+  "description": "A multi-purpose open source Discord bot.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://git.timmygstudios.com/tommys-stuff/os-discord-bot.git"
+  },
+  "author": "tommy141x",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "express": "^4.19.2"
+  }
+}
