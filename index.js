@@ -4,6 +4,8 @@ const FileStore = require("session-file-store")(session);
 const passport = require("passport");
 const { Client, GatewayIntentBits } = require("discord.js");
 const config = require("./config.json");
+const StatsHandler = require("./statsHandler");
+const path = require("path");
 
 // Define the routes
 const loginRoute = require("./routes/login");
@@ -59,20 +61,36 @@ app.use(passport.session());
 
 // Initialize Discord client
 
-app.use((req, res, next) => {
-  req.client = client;
-  next();
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMessages,
+  ],
 });
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+const statsHandler = new StatsHandler(client);
+
+app.use((req, res, next) => {
+  req.client = client;
+  req.statsHandler = statsHandler;
+  next();
 });
 
 client.login(config.botToken);
 
 client.once("ready", () => {
   console.log("Discord bot is ready!");
+
+  client.on("guildMemberAdd", () => statsHandler.incrementJoins());
+  client.on("guildMemberRemove", () => statsHandler.incrementLeaves());
+  client.on("messageCreate", () => statsHandler.incrementMessages());
+
+  statsHandler.startTracking();
 });
+
+app.set("view engine", "ejs");
 
 // Authentication middleware
 function ensureAuthenticated(req, res, next) {

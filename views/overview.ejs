@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Overview</title>
+    <style>
+        body {
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            width: 15rem;
+            height: 10rem; /* Fixed height for cards */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #111111;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+
+        .card p {
+            font-size: 1.2rem;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 2rem;
+            color: #ffffff;
+        }
+
+        th, td {
+            border: 1px solid #ffffff;
+            padding: 1rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333333;
+        }
+
+        tr:nth-child(even) {
+            background-color: #444444;
+        }
+    </style>
+</head>
+<body>
+    <h1>Overview</h1>
+    <div class="card-container">
+        <div class="card">
+            <h2>Total Members</h2>
+            <p><%= totalMembers %></p>
+        </div>
+        <div class="card">
+            <h2>Online Members</h2>
+            <p><%= onlineMembers %></p>
+        </div>
+        <% if (stats.intervals.length > 0) { %>
+        <% const last24HoursStats = stats.intervals.filter(interval => new Date(interval.timestamp) > new Date() - 24 * 60 * 60 * 1000); %>
+        <% if (last24HoursStats.length > 0) { %>
+        <% let newMembersLast24Hours = 0; %>
+        <% let newMessagesLast24Hours = 0; %>
+        <% last24HoursStats.forEach(interval => { %>
+            <% newMembersLast24Hours += interval.joins; %>
+            <% newMessagesLast24Hours += interval.messages; %>
+        <% }); %>
+        <div class="card">
+            <h2>New Members (last 24 hours)</h2>
+            <p><%= newMembersLast24Hours %></p>
+        </div>
+        <div class="card">
+            <h2>New Messages (last 24 hours)</h2>
+            <p><%= newMessagesLast24Hours %></p>
+        </div>
+        <% } else { %>
+        <div class="card">
+            <h2>New Members (last 24 hours)</h2>
+            <p>0</p>
+        </div>
+        <div class="card">
+            <h2>New Messages (last 24 hours)</h2>
+            <p>0</p>
+        </div>
+        <% } %>
+        <% } else { %>
+        <p>No statistics available yet.</p>
+        <% } %>
+    </div>
+
+    <h3>Historical Data</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Total Members</th>
+                <th>Online Members</th>
+                <th>Joins</th>
+                <th>Leaves</th>
+                <th>Messages</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% stats.intervals.slice().reverse().forEach(interval => { %>
+            <tr>
+                <td><%= new Date(interval.timestamp).toLocaleString() %></td>
+                <td><%= interval.totalMembers %></td>
+                <td><%= interval.onlineMembers %></td>
+                <td><%= interval.joins %></td>
+                <td><%= interval.leaves %></td>
+                <td><%= interval.messages %></td>
+            </tr>
+            <% }); %>
+        </tbody>
+    </table>
+</body>
+</html>

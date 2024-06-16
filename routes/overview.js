@@ -5,23 +5,23 @@ const config = require("../config.json");
 router.get("/", async (req, res) => {
   try {
     const client = req.client;
-    if (!client || !client.guilds) {
-      throw new Error("Discord client is not initialized");
-    }
+    const statsHandler = req.statsHandler;
     const guild = await client.guilds.fetch(config.guildID);
-    if (!guild) {
-      throw new Error("Guild not found");
-    }
-    const members = await guild.members.fetch();
-    const totalMembers = members.size;
-    const onlineMembers = members.filter(
-      (member) => member.presence?.status === "online",
-    ).size;
-    res.send(`
-      <h1>Overview</h1>
-      <p>Total Members: ${totalMembers}</p>
-      <p>Online Members: ${onlineMembers}</p>
-    `);
+
+    // Fetch basic information about the guild (this includes approximate member counts)
+    const guildPreview = await guild.fetch();
+    const totalMembers = guild.memberCount;
+    const onlineMembers = guildPreview.approximatePresenceCount;
+    const srvLog = function (text) {
+      console.log(text);
+    };
+
+    res.render("overview", {
+      srvLog,
+      totalMembers,
+      onlineMembers,
+      stats: statsHandler.stats,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send(`<h1>Error</h1><p>${error.message}</p>`);
