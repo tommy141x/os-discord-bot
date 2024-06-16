@@ -727,6 +727,22 @@
       "joins": 0,
       "leaves": 0,
       "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T01:13:41.344Z",
+      "totalMembers": 751,
+      "onlineMembers": 145,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T01:14:14.741Z",
+      "totalMembers": 751,
+      "onlineMembers": 143,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
     }
   ]
 }

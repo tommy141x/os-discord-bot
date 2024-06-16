@@ -1,11 +1,13 @@
 const express = require("express");
 const session = require("express-session");
+const favicon = require("express-favicon");
 const FileStore = require("session-file-store")(session);
 const passport = require("passport");
 const { Client, GatewayIntentBits } = require("discord.js");
 const config = require("./config.json");
 const StatsHandler = require("./statsHandler");
 const path = require("path");
+const fs = require("fs");
 
 // Define the routes
 const loginRoute = require("./routes/login");
@@ -88,7 +90,24 @@ client.once("ready", () => {
   client.on("messageCreate", () => statsHandler.incrementMessages());
 
   statsHandler.startTracking();
+
+  // Set favicon to guild avatar
+  const guild = client.guilds.cache.get(config.guildID);
+  if (guild) {
+    const guildIconURL = guild.iconURL();
+    if (guildIconURL) {
+      const guildFaviconPath = "./public/favicon.ico"; // Path where the favicon will be saved
+      // Download the guild icon and save it as favicon
+      const file = fs.createWriteStream(guildFaviconPath);
+      const https = require("https");
+      https.get(guildIconURL, function (response) {
+        response.pipe(file);
+      });
+    }
+  }
 });
+
+app.use(favicon(__dirname + "/public/favicon.ico"));
 
 app.set("view engine", "ejs");
 
