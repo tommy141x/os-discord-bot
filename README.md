@@ -36,8 +36,25 @@ This is a multi-purpose Discord bot built using Node.js with the discord.js libr
    ```
 5. Visit `http://localhost:3000` in your browser to access the dashboard.
 
+## Technologies Used:
+
+- **Backend Technologies:**
+  - Node.js
+  - npm
+  - Express
+
+- **Discord Bot Development:**
+  - [discord.js](https://discord.js.org/docs)
+
+- **Frontend Technologies:**
+  - [Franken UI](https://www.franken-ui.dev/docs/)
+  - jQuery
+
+- **Authentication:**
+  - Passport.js
+
 ## Contributing
-Contributions are welcome! Please feel free to submit a pull request or open an issue if you encounter any problems or have suggestions for improvements.
+Contributions to this project are encouraged and appreciated. Please feel free to submit pull requests or open issues if you encounter any problems or have suggestions for improvements.
 
 ## License
 This project is open source and available under the [MIT License](LICENSE).
