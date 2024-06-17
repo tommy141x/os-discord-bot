@@ -47,7 +47,7 @@ This is a multi-purpose Discord bot built using Node.js with the discord.js libr
   - [discord.js](https://discord.js.org/docs)
 
 - **Frontend Technologies:**
-  - [Franken UI](https://www.franken-ui.dev/docs/)
+  - [Franken UI](https://www.franken-ui.dev/)
   - jQuery
 
 - **Authentication:**
