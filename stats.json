@@ -743,6 +743,350 @@
       "joins": 0,
       "leaves": 0,
       "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:55:31.001Z",
+      "totalMembers": 752,
+      "onlineMembers": 144,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:56:55.462Z",
+      "totalMembers": 752,
+      "onlineMembers": 144,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:57:17.890Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:57:20.579Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:57:24.505Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:58:29.712Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:59:18.806Z",
+      "totalMembers": 752,
+      "onlineMembers": 143,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T21:59:48.059Z",
+      "totalMembers": 752,
+      "onlineMembers": 143,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:02:36.401Z",
+      "totalMembers": 752,
+      "onlineMembers": 145,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:02:38.143Z",
+      "totalMembers": 752,
+      "onlineMembers": 145,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:03:08.362Z",
+      "totalMembers": 752,
+      "onlineMembers": 145,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:04:49.178Z",
+      "totalMembers": 752,
+      "onlineMembers": 150,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:08:42.091Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:09:41.314Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:10:50.132Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:12:18.112Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:14:47.204Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:15:27.238Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:16:13.692Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:17:21.683Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:17:31.453Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:17:59.844Z",
+      "totalMembers": 752,
+      "onlineMembers": 141,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:18:48.427Z",
+      "totalMembers": 752,
+      "onlineMembers": 141,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:22:17.267Z",
+      "totalMembers": 752,
+      "onlineMembers": 139,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:25:11.172Z",
+      "totalMembers": 752,
+      "onlineMembers": 137,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:26:24.515Z",
+      "totalMembers": 752,
+      "onlineMembers": 137,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:31:42.513Z",
+      "totalMembers": 752,
+      "onlineMembers": 141,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T22:34:50.153Z",
+      "totalMembers": 752,
+      "onlineMembers": 142,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T23:23:14.421Z",
+      "totalMembers": 752,
+      "onlineMembers": 145,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T23:32:11.292Z",
+      "totalMembers": 752,
+      "onlineMembers": 145,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T23:37:36.555Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T23:38:28.161Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-16T23:41:43.693Z",
+      "totalMembers": 752,
+      "onlineMembers": 147,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:11:52.744Z",
+      "totalMembers": 752,
+      "onlineMembers": 141,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:12:30.603Z",
+      "totalMembers": 752,
+      "onlineMembers": 141,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:13:18.907Z",
+      "totalMembers": 752,
+      "onlineMembers": 142,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:16:10.879Z",
+      "totalMembers": 752,
+      "onlineMembers": 143,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:19:07.232Z",
+      "totalMembers": 752,
+      "onlineMembers": 143,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:21:09.382Z",
+      "totalMembers": 752,
+      "onlineMembers": 146,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:23:17.426Z",
+      "totalMembers": 752,
+      "onlineMembers": 147,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:23:35.896Z",
+      "totalMembers": 752,
+      "onlineMembers": 147,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T03:53:35.996Z",
+      "totalMembers": 752,
+      "onlineMembers": 142,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
+    },
+    {
+      "timestamp": "2024-06-17T04:23:35.963Z",
+      "totalMembers": 752,
+      "onlineMembers": 137,
+      "joins": 0,
+      "leaves": 0,
+      "messages": 0
     }
   ]
 }

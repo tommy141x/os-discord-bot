@@ -1,0 +1,921 @@
+<html>
+    <head>
+        <title>Dashboard</title>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+        />
+        <script
+            src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+            crossorigin="anonymous"
+        ></script>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/franken-ui-releases@0.0.13/dist/default.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            .sidebar {
+                width: 20rem;
+                height: 100%;
+                padding: 2rem;
+                box-sizing: border-box;
+                float: left;
+                display: flex;
+                flex-direction: column;
+                align-items: center; /* Centering the buttons vertically */
+                overflow-y: auto; /* Added to enable scrolling */
+            }
+            .sidebar-header {
+                margin-bottom: 2rem;
+                text-align: center; /* Centering the text horizontally */
+            }
+            .sidebar-header-title {
+                font-size: 1.5rem;
+                margin: 0;
+            }
+            .sidebar-menu {
+                padding: 0;
+                margin: 0;
+                width: 90%;
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: center; /* Centering the buttons horizontally */
+            }
+
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0;
+                padding: 0;
+            }
+
+            .page {
+                height: 90%;
+                width: 80%;
+                overflow: auto;
+                border-radius: 1rem;
+                margin: 1rem;
+                padding: 1rem;
+            }
+
+            *::-webkit-scrollbar {
+                display: none;
+            }
+        </style>
+        <script>
+            // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+            if (
+                localStorage.getItem("color-theme") === "dark" ||
+                (!("color-theme" in localStorage) &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches)
+            ) {
+                document.documentElement.classList.add("dark");
+            } else {
+                document.documentElement.classList.remove("dark");
+            }
+        </script>
+    </head>
+    <body class="uk-background-default">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-header-title text-foreground">
+                    OS Discord Bot
+                </h1>
+            </div>
+            <div class="sidebar-menu">
+                <button
+                    class="uk-width-1-1 uk-button uk-button-secondary"
+                    onclick="showDiv('overview')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: home; ratio: 0.8"
+                    ></span>
+                    Overview
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('server-settings')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: cog; ratio: 0.8"
+                    ></span>
+                    Server Settings
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('embed-messages')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: grid; ratio: 0.8"
+                    ></span>
+                    Embed Messages
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('utility')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: crosshairs; ratio: 0.8"
+                    ></span>
+                    Utility
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('moderation')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: ban; ratio: 0.8"
+                    ></span>
+                    Moderation
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('automod')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: lock; ratio: 0.8"
+                    ></span>
+                    AutoMod
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('welcome-goodbye')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: social; ratio: 0.8"
+                    ></span>
+                    Welcome/Goodbye
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('auto-responder')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: reply; ratio: 0.8"
+                    ></span>
+                    Auto Responder
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('leveling-system')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: refresh; ratio: 0.8"
+                    ></span>
+                    Leveling System
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('auto-roles')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: users; ratio: 0.8"
+                    ></span>
+                    Auto Roles
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('logs')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: database; ratio: 0.8"
+                    ></span>
+                    Logs
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('colors')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: lifesaver; ratio: 0.8"
+                    ></span>
+                    Colors
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('self-assignable-roles')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: user; ratio: 0.8"
+                    ></span>
+                    Self-Assignable Roles
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('starboard')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: star; ratio: 0.8"
+                    ></span>
+                    Starboard
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('temporary-channels')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: clock; ratio: 0.8"
+                    ></span>
+                    Temporary Channels
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('anti-raid')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: world; ratio: 0.8"
+                    ></span>
+                    Anti-Raid
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('social-alerts')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: bell; ratio: 0.8"
+                    ></span>
+                    Social Alerts
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('control-panel-logs')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: rss; ratio: 0.8"
+                    ></span>
+                    Control Panel Logs
+                </button>
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('mod-actions')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: history; ratio: 0.8"
+                    ></span>
+                    Mod Actions
+                </button>
+            </div>
+            <div
+                style="
+                    display: flex;
+                    width: 90%;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-top: 1rem;
+                "
+            >
+                <button
+                    class="uk-width-1-1 uk-button uk-button-danger"
+                    onclick="logout()"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: sign-out; ratio: 0.8"
+                    ></span>
+                    Logout
+                </button>
+                <style>
+                    #theme-toggle:hover {
+                        cursor: pointer;
+                    }
+                </style>
+                <a
+                    id="theme-toggle"
+                    class="uk-icon-button; text-foreground"
+                    style="margin-left: 1rem"
+                    uk-icon="paint-bucket"
+                ></a>
+                <script>
+                    var themeToggleBtn =
+                        document.getElementById("theme-toggle");
+
+                    themeToggleBtn.addEventListener("click", function () {
+                        // if set via local storage previously
+                        if (localStorage.getItem("color-theme")) {
+                            if (
+                                localStorage.getItem("color-theme") === "light"
+                            ) {
+                                document.documentElement.classList.add("dark");
+                                localStorage.setItem("color-theme", "dark");
+                            } else {
+                                document.documentElement.classList.remove(
+                                    "dark",
+                                );
+                                localStorage.setItem("color-theme", "light");
+                            }
+
+                            // if NOT set via local storage previously
+                        } else {
+                            if (
+                                document.documentElement.classList.contains(
+                                    "dark",
+                                )
+                            ) {
+                                document.documentElement.classList.remove(
+                                    "dark",
+                                );
+                                localStorage.setItem("color-theme", "light");
+                            } else {
+                                document.documentElement.classList.add("dark");
+                                localStorage.setItem("color-theme", "dark");
+                            }
+                        }
+                    });
+                </script>
+            </div>
+        </div>
+        <div id="overview" class="page uk-background-secondary">
+            <style>
+                .card-container {
+                    display: flex;
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                    align-items: center;
+                }
+                .uk-card {
+                    position: relative;
+                }
+                .card-overlay {
+                    position: absolute;
+                    top: 10px;
+                    left: 10px;
+                    font-weight: bold;
+                    z-index: 10;
+                }
+                .header-container {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1rem;
+                }
+                .guild-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+            </style>
+
+            <div class="header-container">
+                <div class="guild-info">
+                    <img
+                        id="guildIcon"
+                        src=""
+                        alt="Guild Icon"
+                        class="uk-border-circle"
+                        width="64"
+                        height="64"
+                    />
+                    <h2 id="guildName" class="uk-h1 text-foreground"></h2>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="uk-card uk-card-default uk-card-body">
+                    <div class="card-overlay" id="totalMembersText">
+                        Total Members: 0
+                    </div>
+                    <canvas id="totalMembersChart"></canvas>
+                </div>
+                <div class="uk-card uk-card-default uk-card-body">
+                    <div class="card-overlay" id="onlineMembersText">
+                        Online Members: 0
+                    </div>
+                    <canvas id="onlineMembersChart"></canvas>
+                </div>
+                <div class="uk-card uk-card-default uk-card-body">
+                    <div class="card-overlay" id="joinCountText">
+                        New Members: 0
+                    </div>
+                    <canvas id="joinCountChart"></canvas>
+                </div>
+                <div class="uk-card uk-card-default uk-card-body">
+                    <div class="card-overlay" id="leaveCountText">
+                        Left Members: 0
+                    </div>
+                    <canvas id="leaveCountChart"></canvas>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", async () => {
+                    const response = await fetch("/api/guild");
+                    const data = await response.json();
+                    const { guildData, stats } = data;
+
+                    document.getElementById("guildIcon").src = guildData.icon;
+                    document.getElementById("guildName").textContent =
+                        guildData.name;
+
+                    const totalMembers = guildData.totalMembers;
+                    const onlineMembers = guildData.onlineMembers;
+                    const joinCounts = stats.intervals.map(
+                        (interval) => interval.joins,
+                    );
+                    const leaveCounts = stats.intervals.map(
+                        (interval) => interval.leaves,
+                    );
+                    const timestamps = stats.intervals.map((interval) =>
+                        new Date(interval.timestamp).toLocaleTimeString(),
+                    );
+
+                    document.getElementById("totalMembersText").textContent =
+                        `Total Members: ${totalMembers}`;
+                    document.getElementById("onlineMembersText").textContent =
+                        `Online Members: ${onlineMembers}`;
+                    document.getElementById("joinCountText").textContent =
+                        `New Members: ${joinCounts[joinCounts.length - 1]}`;
+                    document.getElementById("leaveCountText").textContent =
+                        `Left Members: ${leaveCounts[leaveCounts.length - 1]}`;
+
+                    new Chart(document.getElementById("totalMembersChart"), {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "Total Members",
+                                    data: stats.intervals.map(
+                                        (interval) => interval.totalMembers,
+                                    ),
+                                    borderColor: "rgba(75, 192, 192, 1)",
+                                    borderWidth: 2,
+                                    fill: false,
+                                },
+                            ],
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    title: { display: true, text: "Time" },
+                                },
+                                y: {
+                                    title: { display: true, text: "Members" },
+                                    beginAtZero: true,
+                                },
+                            },
+                        },
+                    });
+
+                    new Chart(document.getElementById("onlineMembersChart"), {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "Online Members",
+                                    data: stats.intervals.map(
+                                        (interval) => interval.onlineMembers,
+                                    ),
+                                    borderColor: "rgba(54, 162, 235, 1)",
+                                    borderWidth: 2,
+                                    fill: false,
+                                },
+                            ],
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    title: { display: true, text: "Time" },
+                                },
+                                y: {
+                                    title: { display: true, text: "Members" },
+                                    beginAtZero: true,
+                                },
+                            },
+                        },
+                    });
+
+                    new Chart(document.getElementById("joinCountChart"), {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "New Members",
+                                    data: joinCounts,
+                                    borderColor: "rgba(255, 206, 86, 1)",
+                                    borderWidth: 2,
+                                    fill: false,
+                                },
+                            ],
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    title: { display: true, text: "Time" },
+                                },
+                                y: {
+                                    title: { display: true, text: "Members" },
+                                    beginAtZero: true,
+                                },
+                            },
+                        },
+                    });
+
+                    new Chart(document.getElementById("leaveCountChart"), {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "Left Members",
+                                    data: leaveCounts,
+                                    borderColor: "rgba(255, 99, 132, 1)",
+                                    borderWidth: 2,
+                                    fill: false,
+                                },
+                            ],
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    title: { display: true, text: "Time" },
+                                },
+                                y: {
+                                    title: { display: true, text: "Members" },
+                                    beginAtZero: true,
+                                },
+                            },
+                        },
+                    });
+                });
+            </script>
+        </div>
+        <div id="server-settings" class="page uk-background-secondary">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Server Settings
+            </h1>
+            <div
+                id="serverSettingsForm"
+                class="uk-card uk-card-default uk-card-body"
+            >
+                <input type="hidden" id="guildId" value="<%= guild.id %>" />
+
+                <div class="uk-margin">
+                    <label
+                        class="uk-form-label"
+                        for="defaultMessageNotifications"
+                        >Default Notification Settings:</label
+                    >
+                    <select
+                        class="uk-select"
+                        id="defaultMessageNotifications"
+                        name="defaultMessageNotifications"
+                    >
+                        <option value="0">All Messages</option>
+                        <option value="1">Only @mentions</option>
+                    </select>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="explicitContentFilter"
+                        >Explicit Content Filter:</label
+                    >
+                    <select
+                        class="uk-select"
+                        id="explicitContentFilter"
+                        name="explicitContentFilter"
+                    >
+                        <option value="0">Disabled</option>
+                        <option value="1">Members without roles</option>
+                        <option value="2">All members</option>
+                    </select>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="systemChannelId"
+                        >System Messages Channel ID:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="systemChannelId"
+                        name="systemChannelId"
+                        placeholder="Channel ID"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="preferredLocale"
+                        >Server Region:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="preferredLocale"
+                        name="preferredLocale"
+                        placeholder="e.g., en-US, ja"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="sendWelcomeMessage"
+                            name="sendWelcomeMessage"
+                        />
+                        Send a random welcome message when someone joins this
+                        server.
+                    </label>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="promptWelcomeSticker"
+                            name="promptWelcomeSticker"
+                        />
+                        Prompt members to reply to welcome messages with a
+                        sticker.
+                    </label>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="sendBoostMessage"
+                            name="sendBoostMessage"
+                        />
+                        Send a message when someone boosts this server.
+                    </label>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="sendHelpfulTips"
+                            name="sendHelpfulTips"
+                        />
+                        Send helpful tips for server setup.
+                    </label>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="sendPurchaseMessage"
+                            name="sendPurchaseMessage"
+                        />
+                        Send a message when someone purchases a Server Product
+                        or Server Subscription.
+                    </label>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="promptSubscriptionSticker"
+                            name="promptSubscriptionSticker"
+                        />
+                        Prompt members to reply to Server Subscription
+                        congratulation messages with a sticker.
+                    </label>
+                </div>
+
+                <div class="uk-card-footer uk-flex uk-flex-between">
+                    <button
+                        type="button"
+                        class="uk-button uk-button-default"
+                        id="updateButton"
+                    >
+                        Update Server Settings
+                    </button>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", async () => {
+                    const response = await fetch(`/api/guild`);
+                    const { guildData } = await response.json();
+
+                    document.getElementById(
+                        "defaultMessageNotifications",
+                    ).value = guildData.defaultMessageNotifications;
+                    document.getElementById("explicitContentFilter").value =
+                        guildData.explicitContentFilter;
+                    document.getElementById("systemChannelId").value =
+                        guildData.systemChannelId || "";
+                    document.getElementById("preferredLocale").value =
+                        guildData.preferredLocale;
+                    document.getElementById("sendWelcomeMessage").checked =
+                        guildData.sendWelcomeMessage;
+                    document.getElementById("promptWelcomeSticker").checked =
+                        guildData.promptWelcomeSticker;
+                    document.getElementById("sendBoostMessage").checked =
+                        guildData.sendBoostMessage;
+                    document.getElementById("sendPurchaseMessage").checked =
+                        guildData.sendPurchaseMessage;
+                    document.getElementById(
+                        "promptSubscriptionSticker",
+                    ).checked = guildData.promptSubscriptionSticker;
+                    document.getElementById("sendHelpfulTips").checked =
+                        guildData.sendHelpfulTips;
+
+                    document
+                        .getElementById("updateButton")
+                        .addEventListener("click", async () => {
+                            const updatedData = {
+                                defaultMessageNotifications:
+                                    document.getElementById(
+                                        "defaultMessageNotifications",
+                                    ).value,
+                                explicitContentFilter: document.getElementById(
+                                    "explicitContentFilter",
+                                ).value,
+                                systemChannelId:
+                                    document.getElementById("systemChannelId")
+                                        .value,
+                                preferredLocale:
+                                    document.getElementById("preferredLocale")
+                                        .value,
+                                sendWelcomeMessage:
+                                    document.getElementById(
+                                        "sendWelcomeMessage",
+                                    ).checked,
+                                promptWelcomeSticker: document.getElementById(
+                                    "promptWelcomeSticker",
+                                ).checked,
+                                sendBoostMessage:
+                                    document.getElementById("sendBoostMessage")
+                                        .checked,
+                                sendPurchaseMessage: document.getElementById(
+                                    "sendPurchaseMessage",
+                                ).checked,
+                                promptSubscriptionSticker:
+                                    document.getElementById(
+                                        "promptSubscriptionSticker",
+                                    ).checked,
+                                sendHelpfulTips:
+                                    document.getElementById("sendHelpfulTips")
+                                        .checked,
+                            };
+
+                            const updateResponse = await fetch(`/api/guild`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify(updatedData),
+                            });
+
+                            if (updateResponse.ok) {
+                                UIkit.notification({
+                                    message:
+                                        "<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Succesfully updated settings.</div>",
+                                });
+                            } else {
+                                UIkit.notification({
+                                    message: "There was an error!",
+                                });
+                            }
+                        });
+                });
+            </script>
+        </div>
+        <div id="embed-messages" class="page uk-background-secondary">
+            <!-- embed messages page -->
+        </div>
+        <div id="utility" class="page uk-background-secondary">
+            <!-- utility page -->
+        </div>
+        <div id="moderation" class="page uk-background-secondary">
+            <!-- moderation page -->
+        </div>
+        <div id="automod" class="page uk-background-secondary">
+            <!-- automod page -->
+        </div>
+        <div id="welcome-goodbye" class="page uk-background-secondary">
+            <!-- welcome goodbye page -->
+        </div>
+        <div id="auto-responder" class="page uk-background-secondary">
+            <!-- auto responder page -->
+        </div>
+        <div id="leveling-system" class="page uk-background-secondary">
+            <!-- leveling system page -->
+        </div>
+        <div id="auto-roles" class="page uk-background-secondary">
+            <!-- auto roles page -->
+        </div>
+        <div id="logs" class="page uk-background-secondary">
+            <!-- logs page -->
+        </div>
+        <div id="colors" class="page uk-background-secondary">
+            <!-- colors page -->
+        </div>
+        <div id="self-assignable-roles" class="page uk-background-secondary">
+            <!-- self assignable roles page -->
+        </div>
+        <div id="starboard" class="page uk-background-secondary">
+            <!-- starboard page -->
+        </div>
+        <div id="temporary-channels" class="page uk-background-secondary">
+            <!-- temporary channels page -->
+        </div>
+        <div id="anti-raid" class="page uk-background-secondary">
+            <!-- anti-raid page -->
+        </div>
+        <div id="social-alerts" class="page uk-background-secondary">
+            <!-- social alerts page -->
+        </div>
+        <div id="control-panel-logs" class="page uk-background-secondary">
+            <!-- control panel logs page -->
+        </div>
+        <div id="mod-actions" class="page uk-background-secondary">
+            <!-- mod actions page -->
+        </div>
+
+        <script>
+            function showDiv(route) {
+                // Hide all views
+                document.querySelectorAll(".page").forEach((page) => {
+                    page.style.display = "none";
+                });
+                // Show the correct view
+                document.getElementById(route).style.display = "block";
+            }
+
+            function logout() {
+                fetch("/logout")
+                    .then(() => (window.location.href = "/login"))
+                    .catch((error) => console.error("Error:", error));
+            }
+
+            // Adding click event to switch selection on click
+            document.querySelectorAll(".sidebar-menu > *").forEach((item) => {
+                item.addEventListener("click", function () {
+                    // Remove the 'uk-button-secondary' class from all buttons and set them to primary
+                    document
+                        .querySelectorAll(".sidebar-menu > *")
+                        .forEach((btn) => {
+                            btn.classList.remove("uk-button-secondary");
+                            btn.classList.add("uk-button-default");
+                        });
+                    // Add the 'uk-button-secondary' class to the clicked button
+                    this.classList.remove("uk-button-default");
+                    this.classList.add("uk-button-secondary");
+                });
+            });
+
+            // Show the default view
+            showDiv("overview");
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/uikit@3.21.5/dist/js/uikit.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/uikit@3.21.5/dist/js/uikit-icons.min.js"></script>
+    </body>
+</html>

@@ -1,0 +1,61 @@
+<html>
+    <head>
+        <title>Login</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                font-family: Arial, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+            h1 {
+                text-align: center;
+            }
+            p {
+                text-align: center;
+            }
+        </style>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/franken-ui-releases@0.0.13/dist/default.min.css"
+        />
+        <script>
+            // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+            if (
+                localStorage.getItem("color-theme") === "dark" ||
+                (!("color-theme" in localStorage) &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches)
+            ) {
+                document.documentElement.classList.add("dark");
+            } else {
+                document.documentElement.classList.remove("dark");
+            }
+        </script>
+    </head>
+    <body
+        class="uk-background-default uk-flex uk-flex-center uk-flex-middle uk-height-viewport uk-padding"
+    >
+        <div class="uk-card uk-card-secondary uk-card-body uk-width-1-2@m">
+            <div class="uk-text-center">
+                <div>
+                    <span
+                        uk-icon="icon: discord; ratio: 5"
+                        class="uk-text-foreground"
+                    ></span>
+                </div>
+                <div style="margin-top: 1rem">
+                    <a href="/login/auth" class="uk-button uk-button-primary"
+                        >Login with Discord</a
+                    >
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/uikit@3.21.5/dist/js/uikit.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/uikit@3.21.5/dist/js/uikit-icons.min.js"></script>
+    </body>
+</html>
