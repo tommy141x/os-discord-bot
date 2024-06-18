@@ -1,5 +1,6 @@
 const fs = require("fs").promises;
 const path = require("path");
+const config = require("./config.json");
 
 class StatsHandler {
   constructor(client) {
@@ -7,12 +8,19 @@ class StatsHandler {
     this.statsFile = path.join(__dirname, "stats.json");
     this.stats = {
       intervals: [],
+      joins: 0,
+      leaves: 0,
+      messages: 0,
     };
-    this.joinCount = 0;
-    this.leaveCount = 0;
-    this.messageCount = 0;
+    this.localJoins = 0;
+    this.localLeaves = 0;
+    this.localMessages = 0;
+  }
 
-    this.loadStats();
+  registerEventListeners() {
+    this.client.on("guildMemberAdd", (member) => this.incrementJoins());
+    this.client.on("guildMemberRemove", (member) => this.incrementLeaves());
+    this.client.on("messageCreate", (message) => this.incrementMessages());
   }
 
   async loadStats() {
@@ -20,16 +28,21 @@ class StatsHandler {
       const data = await fs.readFile(this.statsFile, "utf8");
       if (data.trim() === "") {
         console.log("Stats file is empty, starting fresh.");
-        this.stats = { intervals: [] };
       } else {
-        this.stats = JSON.parse(data);
+        const existingStats = JSON.parse(data);
+        this.stats.intervals = [
+          ...existingStats.intervals,
+          ...this.stats.intervals,
+        ];
+        this.stats.joins = existingStats.joins;
+        this.stats.leaves = existingStats.leaves;
+        this.stats.messages = existingStats.messages;
       }
     } catch (error) {
       if (error.code === "ENOENT") {
         console.log("No existing stats file, starting fresh.");
       } else if (error instanceof SyntaxError) {
         console.log("Invalid JSON in stats file, starting fresh.");
-        this.stats = { intervals: [] };
       } else {
         console.error("Error loading stats:", error);
       }
@@ -38,7 +51,18 @@ class StatsHandler {
 
   async saveStats() {
     try {
-      await fs.writeFile(this.statsFile, JSON.stringify(this.stats, null, 2));
+      const existingData = await fs.readFile(this.statsFile, "utf8");
+      const existingStats =
+        existingData.trim() === "" ? {} : JSON.parse(existingData);
+
+      const updatedStats = {
+        intervals: [...existingStats.intervals, ...this.stats.intervals],
+        joins: existingStats.joins + this.stats.joins,
+        leaves: existingStats.leaves + this.stats.leaves,
+        messages: existingStats.messages + this.stats.messages,
+      };
+
+      await fs.writeFile(this.statsFile, JSON.stringify(updatedStats, null, 2));
       console.log("Stats saved.");
     } catch (error) {
       console.error("Error saving stats:", error);
@@ -46,50 +70,48 @@ class StatsHandler {
   }
 
   incrementJoins() {
-    this.joinCount++;
+    this.localJoins++;
+    this.stats.joins++;
   }
 
   incrementLeaves() {
-    this.leaveCount++;
+    this.localLeaves++;
+    this.stats.leaves++;
   }
 
   incrementMessages() {
-    this.messageCount++;
+    this.localMessages++;
+    this.stats.messages++;
   }
 
   async collectStats() {
     console.log("Collecting stats at ", new Date().toISOString(), "...");
-    const guilds = this.client.guilds.cache;
-    let totalMembers = 0;
-    let onlineMembers = 0;
-
-    for (const guild of guilds.values()) {
-      const guildPreview = await guild.fetch();
-      totalMembers += guild.memberCount;
-      onlineMembers += guildPreview.approximatePresenceCount;
-    }
+    const guild = await this.client.guilds.fetch(config.guildID);
+    const guildPreview = await guild.fetch();
+    let totalMembers = guild.memberCount;
+    let onlineMembers = guildPreview.approximatePresenceCount;
 
     const currentStats = {
       timestamp: new Date().toISOString(),
       totalMembers,
       onlineMembers,
-      joins: this.joinCount,
-      leaves: this.leaveCount,
-      messages: this.messageCount,
+      joins: this.localJoins,
+      leaves: this.localLeaves,
+      messages: this.localMessages,
     };
-
     this.stats.intervals.push(currentStats);
+    this.localJoins = 0;
+    this.localLeaves = 0;
+    this.localMessages = 0;
     await this.saveStats();
-
-    // Reset counters
-    this.joinCount = 0;
-    this.leaveCount = 0;
-    this.messageCount = 0;
   }
 
   startTracking() {
+    this.loadStats(); // Load existing stats or start fresh
     this.collectStats(); // Collect stats immediately
-    setInterval(() => this.collectStats(), 30 * 60 * 1000); // 30 minutes
+    this.registerEventListeners();
+    const statsInterval = config.statsInterval || 30; // Default to 30 minutes if not provided
+    setInterval(() => this.collectStats(), statsInterval * 60 * 1000);
   }
 }
 

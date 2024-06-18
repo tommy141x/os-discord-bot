@@ -6,5 +6,6 @@
   "clientID": "YOUR_DISCORD_CLIENT_ID",
   "clientSecret": "YOUR_DISCORD_CLIENT_SECRET",
   "publicURL": "http://localhost:3000",
-  "sessionSecret": "super-secret-key"
+  "sessionSecret": "super-secret-key",
+  "statsInterval": 30
 }

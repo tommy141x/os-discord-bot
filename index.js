@@ -59,13 +59,7 @@ client.login(config.botToken);
 
 client.once("ready", () => {
   console.log("Discord bot is started!");
-
-  client.on("guildMemberAdd", () => statsHandler.incrementJoins());
-  client.on("guildMemberRemove", () => statsHandler.incrementLeaves());
-  client.on("messageCreate", () => statsHandler.incrementMessages());
-
   statsHandler.startTracking();
-
   const guild = client.guilds.cache.get(config.guildID);
   if (guild) {
     const guildIconURL = guild.iconURL();

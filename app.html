@@ -372,6 +372,7 @@
                 .card-container {
                     display: flex;
                     flex-direction: row;
+                    justify-content: space-around;
                     flex-wrap: wrap;
                     gap: 1rem;
                     align-items: center;
@@ -381,8 +382,9 @@
                 }
                 .card-overlay {
                     position: absolute;
-                    top: 10px;
-                    left: 10px;
+                    top: 1rem;
+                    left: 1rem;
+                    font-size: 1.5rem;
                     font-weight: bold;
                     z-index: 10;
                 }
@@ -413,30 +415,70 @@
                 </div>
             </div>
 
+            <style>
+                .no-padding {
+                    position: relative;
+                    width: 400px;
+                    height: 200px;
+                    overflow: hidden; /* Hide overflow to ensure the chart doesn't exceed bounds */
+                    padding: 0 !important;
+                }
+
+                #totalMembersChart,
+                #onlineMembersChart,
+                #joinsChart,
+                #leavesChart,
+                #messagesChart {
+                    position: absolute;
+                    width: 405px !important; /* Slightly larger width */
+                    height: 130px !important; /* Slightly larger height */
+                    top: 75px; /* Adjust top to center vertically, starting at 80% of parent height */
+                    left: -2.5px; /* Adjust left to center horizontally */
+                }
+            </style>
+
             <div class="card-container">
-                <div class="uk-card uk-card-default uk-card-body">
+                <div class="uk-card uk-card-default uk-card-body no-padding">
                     <div class="card-overlay" id="totalMembersText">
-                        Total Members: 0
+                        0 Total Members
                     </div>
-                    <canvas id="totalMembersChart"></canvas>
+                    <canvas
+                        id="totalMembersChart"
+                        height="130"
+                        width="405"
+                    ></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body">
+                <div class="uk-card uk-card-default uk-card-body no-padding">
                     <div class="card-overlay" id="onlineMembersText">
                         Online Members: 0
                     </div>
-                    <canvas id="onlineMembersChart"></canvas>
+                    <canvas
+                        id="onlineMembersChart"
+                        height="130"
+                        width="405"
+                    ></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body">
-                    <div class="card-overlay" id="joinCountText">
-                        New Members: 0
+                <div class="uk-card uk-card-default uk-card-body no-padding">
+                    <div class="card-overlay" id="joins24HoursText">
+                        Joins (Last 24 Hours): 0
                     </div>
-                    <canvas id="joinCountChart"></canvas>
+                    <canvas id="joinsChart" height="130" width="405"></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body">
-                    <div class="card-overlay" id="leaveCountText">
-                        Left Members: 0
+                <div class="uk-card uk-card-default uk-card-body no-padding">
+                    <div class="card-overlay" id="leaves24HoursText">
+                        Leaves (Last 24 Hours): 0
                     </div>
-                    <canvas id="leaveCountChart"></canvas>
+                    <canvas id="leavesChart" height="130" width="405"></canvas>
+                </div>
+                <div class="uk-card uk-card-default uk-card-body no-padding">
+                    <div class="card-overlay" id="messages24HoursText">
+                        Messages (Last 24 Hours): 0
+                    </div>
+                    <canvas
+                        id="messagesChart"
+                        height="130"
+                        width="405"
+                    ></canvas>
                 </div>
             </div>
 
@@ -450,26 +492,54 @@
                     document.getElementById("guildName").textContent =
                         guildData.name;
 
-                    const totalMembers = guildData.totalMembers;
-                    const onlineMembers = guildData.onlineMembers;
-                    const joinCounts = stats.intervals.map(
-                        (interval) => interval.joins,
-                    );
-                    const leaveCounts = stats.intervals.map(
-                        (interval) => interval.leaves,
-                    );
+                    console.log(stats);
+
+                    const lastInterval =
+                        stats.intervals[stats.intervals.length - 1];
+
+                    document.getElementById("totalMembersText").textContent =
+                        `${guildData.totalMembers} Total Members`;
+                    document.getElementById("onlineMembersText").textContent =
+                        `${guildData.onlineMembers} Online Members`;
+                    document.getElementById("joins24HoursText").textContent =
+                        `${stats.joins} Joins (Last 24 Hours)`;
+                    document.getElementById("leaves24HoursText").textContent =
+                        `${stats.leaves} Leaves (Last 24 Hours)`;
+                    document.getElementById("messages24HoursText").textContent =
+                        `${stats.messages} Messages (Last 24 Hours)`;
+
                     const timestamps = stats.intervals.map((interval) =>
                         new Date(interval.timestamp).toLocaleTimeString(),
                     );
 
-                    document.getElementById("totalMembersText").textContent =
-                        `Total Members: ${totalMembers}`;
-                    document.getElementById("onlineMembersText").textContent =
-                        `Online Members: ${onlineMembers}`;
-                    document.getElementById("joinCountText").textContent =
-                        `New Members: ${joinCounts[joinCounts.length - 1]}`;
-                    document.getElementById("leaveCountText").textContent =
-                        `Left Members: ${leaveCounts[leaveCounts.length - 1]}`;
+                    const chartOptions = {
+                        scales: {
+                            x: {
+                                display: false, // Hide the x-axis
+                            },
+                            y: {
+                                display: false, // Hide the y-axis
+                                beginAtZero: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                display: false, // Hide the legend
+                            },
+                        },
+                    };
+
+                    const ctx = document
+                        .getElementById("totalMembersChart")
+                        .getContext("2d");
+                    const gradient = ctx.createLinearGradient(
+                        0,
+                        0,
+                        0,
+                        ctx.canvas.height,
+                    );
+                    gradient.addColorStop(0, "rgba(75, 192, 192, 1)"); // Start color
+                    gradient.addColorStop(1, "rgba(153, 102, 255, 1)"); // End color
 
                     new Chart(document.getElementById("totalMembersChart"), {
                         type: "line",
@@ -482,22 +552,14 @@
                                         (interval) => interval.totalMembers,
                                     ),
                                     borderColor: "rgba(75, 192, 192, 1)",
+                                    backgroundColor: gradient,
+                                    cubicInterpolationMode: "monotone",
                                     borderWidth: 2,
-                                    fill: false,
+                                    fill: true,
                                 },
                             ],
                         },
-                        options: {
-                            scales: {
-                                x: {
-                                    title: { display: true, text: "Time" },
-                                },
-                                y: {
-                                    title: { display: true, text: "Members" },
-                                    beginAtZero: true,
-                                },
-                            },
-                        },
+                        options: chartOptions,
                     });
 
                     new Chart(document.getElementById("onlineMembersChart"), {
@@ -511,76 +573,77 @@
                                         (interval) => interval.onlineMembers,
                                     ),
                                     borderColor: "rgba(54, 162, 235, 1)",
+                                    backgroundColor: gradient,
+                                    cubicInterpolationMode: "monotone",
                                     borderWidth: 2,
-                                    fill: false,
+                                    fill: true,
                                 },
                             ],
                         },
-                        options: {
-                            scales: {
-                                x: {
-                                    title: { display: true, text: "Time" },
-                                },
-                                y: {
-                                    title: { display: true, text: "Members" },
-                                    beginAtZero: true,
-                                },
-                            },
-                        },
+                        options: chartOptions,
                     });
 
-                    new Chart(document.getElementById("joinCountChart"), {
+                    new Chart(document.getElementById("joinsChart"), {
                         type: "line",
                         data: {
                             labels: timestamps,
                             datasets: [
                                 {
-                                    label: "New Members",
-                                    data: joinCounts,
+                                    label: "Joins",
+                                    data: stats.intervals.map(
+                                        (interval) => interval.joins,
+                                    ),
                                     borderColor: "rgba(255, 206, 86, 1)",
+                                    backgroundColor: gradient,
+                                    cubicInterpolationMode: "monotone",
                                     borderWidth: 2,
-                                    fill: false,
+                                    fill: true,
                                 },
                             ],
                         },
-                        options: {
-                            scales: {
-                                x: {
-                                    title: { display: true, text: "Time" },
-                                },
-                                y: {
-                                    title: { display: true, text: "Members" },
-                                    beginAtZero: true,
-                                },
-                            },
-                        },
+                        options: chartOptions,
                     });
 
-                    new Chart(document.getElementById("leaveCountChart"), {
+                    new Chart(document.getElementById("leavesChart"), {
                         type: "line",
                         data: {
                             labels: timestamps,
                             datasets: [
                                 {
-                                    label: "Left Members",
-                                    data: leaveCounts,
+                                    label: "Leaves",
+                                    data: stats.intervals.map(
+                                        (interval) => interval.leaves,
+                                    ),
                                     borderColor: "rgba(255, 99, 132, 1)",
+                                    backgroundColor: gradient,
+                                    cubicInterpolationMode: "monotone",
                                     borderWidth: 2,
-                                    fill: false,
+                                    fill: true,
                                 },
                             ],
                         },
-                        options: {
-                            scales: {
-                                x: {
-                                    title: { display: true, text: "Time" },
+                        options: chartOptions,
+                    });
+
+                    new Chart(document.getElementById("messagesChart"), {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "Messages",
+                                    data: stats.intervals.map(
+                                        (interval) => interval.messages,
+                                    ),
+                                    borderColor: "rgba(153, 102, 255, 1)",
+                                    backgroundColor: gradient,
+                                    cubicInterpolationMode: "monotone",
+                                    borderWidth: 2,
+                                    fill: true,
                                 },
-                                y: {
-                                    title: { display: true, text: "Members" },
-                                    beginAtZero: true,
-                                },
-                            },
+                            ],
                         },
+                        options: chartOptions,
                     });
                 });
             </script>
@@ -734,7 +797,7 @@
                         class="uk-button uk-button-default"
                         id="updateButton"
                     >
-                        Update Server Settings
+                        Save Settings
                     </button>
                 </div>
             </div>
