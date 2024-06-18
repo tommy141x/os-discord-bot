@@ -892,8 +892,237 @@
             </script>
         </div>
         <div id="embed-messages" class="page uk-background-secondary">
-            <!-- embed messages page -->
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Embed Settings
+            </h1>
+            <div
+                id="embedSettingsForm"
+                class="uk-card uk-card-default uk-card-body"
+            >
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="channelID"
+                        >Channel ID:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="channelID"
+                        name="channelID"
+                        placeholder="Enter channel ID"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="embedTitle"
+                        >Embed Title:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="embedTitle"
+                        name="embedTitle"
+                        placeholder="Enter embed title"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="embedDescription"
+                        >Embed Description:</label
+                    >
+                    <textarea
+                        class="uk-textarea"
+                        id="embedDescription"
+                        name="embedDescription"
+                        rows="3"
+                        placeholder="Enter embed description"
+                    ></textarea>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label">Embed Fields:</label>
+                    <div id="embedFieldsContainer">
+                        <div class="embed-field">
+                            <input
+                                class="uk-input embed-field-name"
+                                type="text"
+                                placeholder="Field Name"
+                            />
+                            <input
+                                class="uk-input embed-field-value"
+                                type="text"
+                                placeholder="Field Value"
+                            />
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    class="embed-field-inline"
+                                />
+                                Inline
+                            </label>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        class="uk-button uk-button-default"
+                        id="addFieldButton"
+                    >
+                        Add Field
+                    </button>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="messageID"
+                        >Message ID (Optional for updating):</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="messageID"
+                        name="messageID"
+                        placeholder="Enter message ID to update"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="existingEmbeds"
+                        >Select Embed to Update:</label
+                    >
+                    <select class="uk-select" id="existingEmbeds">
+                        <option value="">Select Embed</option>
+                        <!-- Options will be populated dynamically using JavaScript -->
+                    </select>
+                </div>
+
+                <div class="uk-card-footer uk-flex uk-flex-between">
+                    <button
+                        type="button"
+                        class="uk-button uk-button-primary"
+                        id="submitButton"
+                    >
+                        Send Embed
+                    </button>
+                </div>
+            </div>
+
+            <script>
+                // Fetch existing embeds and populate dropdown
+                async function fetchEmbeds() {
+                    try {
+                        const response = await fetch("/api/embeds");
+                        const embeds = await response.json();
+                        const select =
+                            document.getElementById("existingEmbeds");
+                        embeds.forEach((embed) => {
+                            const option = document.createElement("option");
+                            option.value = embed.key;
+                            option.textContent = embed.key;
+                            select.appendChild(option);
+                        });
+                    } catch (error) {
+                        console.error("Failed to fetch embeds", error);
+                    }
+                }
+
+                // Handle form submission
+                document
+                    .getElementById("submitButton")
+                    .addEventListener("click", async () => {
+                        const channelID =
+                            document.getElementById("channelID").value;
+                        const title =
+                            document.getElementById("embedTitle").value;
+                        const description =
+                            document.getElementById("embedDescription").value;
+                        const messageID =
+                            document.getElementById("messageID").value;
+
+                        if (!channelID || !title || !description) {
+                            alert(
+                                "Channel ID, Title, and Description are required.",
+                            );
+                            return;
+                        }
+
+                        const embedFields = Array.from(
+                            document.getElementsByClassName("embed-field"),
+                        ).map((field) => ({
+                            name: field.querySelector(".embed-field-name")
+                                .value,
+                            value: field.querySelector(".embed-field-value")
+                                .value,
+                            inline: field.querySelector(".embed-field-inline")
+                                .checked,
+                        }));
+
+                        const embedData = {
+                            title,
+                            description,
+                            fields: embedFields,
+                        };
+
+                        try {
+                            const response = await fetch("/api/embeds", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    embedData,
+                                    channelID,
+                                    messageID,
+                                }),
+                            });
+
+                            const result = await response.json();
+                            if (response.ok) {
+                                alert("Embed sent/updated successfully");
+                                document
+                                    .getElementById("embedSettingsForm")
+                                    .reset();
+                                fetchEmbeds(); // Refresh the embed dropdown
+                            } else {
+                                alert(
+                                    `Failed to send/update embed: ${result.error}`,
+                                );
+                            }
+                        } catch (error) {
+                            console.error("Error:", error);
+                            alert(
+                                "An error occurred while sending/updating the embed",
+                            );
+                        }
+                    });
+
+                // Add a new field to the embed fields container
+                document
+                    .getElementById("addFieldButton")
+                    .addEventListener("click", () => {
+                        const fieldContainer = document.createElement("div");
+                        fieldContainer.classList.add("embed-field");
+                        fieldContainer.innerHTML = `
+                        <input class="uk-input embed-field-name" type="text" placeholder="Field Name" />
+                        <input class="uk-input embed-field-value" type="text" placeholder="Field Value" />
+                        <label>
+                            <input type="checkbox" class="embed-field-inline" /> Inline
+                        </label>
+                        <button type="button" class="uk-button uk-button-danger remove-field-button">Remove</button>
+                    `;
+                        document
+                            .getElementById("embedFieldsContainer")
+                            .appendChild(fieldContainer);
+
+                        fieldContainer
+                            .querySelector(".remove-field-button")
+                            .addEventListener("click", () => {
+                                fieldContainer.remove();
+                            });
+                    });
+
+                // Initialize the embeds dropdown on page load
+                window.addEventListener("DOMContentLoaded", fetchEmbeds);
+            </script>
         </div>
+
         <div id="utility" class="page uk-background-secondary">
             <!-- utility page -->
         </div>

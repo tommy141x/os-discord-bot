@@ -230,6 +230,75 @@ app.post("/api/guild", ensureAuthenticated, async (req, res) => {
   }
 });
 
+const { get, set, list } = require("./db");
+
+// Fetch all embeds
+app.get("/api/embeds", ensureAuthenticated, async (req, res) => {
+  try {
+    const db = get("embeds") || {};
+    const embedKeys = Object.keys(db); // List all keys
+    const embeds = embedKeys.map((key) => ({
+      key,
+      data: db[key],
+    }));
+    res.json(embeds);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch embeds" });
+  }
+});
+
+// Create or update an embed and send/update the message
+app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
+  const { embedData, channelID, messageID } = req.body;
+
+  if (!embedData || !channelID) {
+    return res
+      .status(400)
+      .json({ error: "Embed data and channel ID are required" });
+  }
+
+  try {
+    const embed = {
+      title: embedData.title,
+      description: embedData.description,
+      fields: embedData.fields || [],
+      // Add other embed fields as needed
+    };
+
+    const channel = await client.channels.fetch(channelID);
+    if (!channel.isText()) {
+      return res
+        .status(400)
+        .json({ error: "Channel ID is not a text channel" });
+    }
+
+    let message;
+    if (messageID) {
+      // Update existing message
+      message = await channel.messages.fetch(messageID);
+      await message.edit({ embeds: [embed] });
+    } else {
+      // Send new message
+      message = await channel.send({ embeds: [embed] });
+    }
+
+    // Store the embed data with the message ID
+    const storedEmbedData = { ...embedData, channelID, messageID: message.id };
+    const db = get("embeds") || {};
+    db[message.id] = storedEmbedData;
+    set("embeds", db);
+
+    res
+      .status(201)
+      .json({ message: "Embed saved and message sent/updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "Failed to save embed or send/update message" });
+  }
+});
+
 // Define your routes
 app.get("/", ensureAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, "app.html"));

@@ -1,11 +1,10 @@
-const fs = require("fs").promises;
 const path = require("path");
 const config = require("./config.json");
+const db = require("./db.js");
 
 class StatsHandler {
   constructor(client) {
     this.client = client;
-    this.statsFile = path.join(__dirname, "stats.json");
     this.stats = {
       intervals: [],
       joins: 0,
@@ -25,35 +24,28 @@ class StatsHandler {
 
   async loadStats() {
     try {
-      const data = await fs.readFile(this.statsFile, "utf8");
-      if (data.trim() === "") {
-        console.log("Stats file is empty, starting fresh.");
+      const existingStats = db.get("stats");
+      if (existingStats) {
+        this.stats.intervals = existingStats.intervals || [];
+        this.stats.joins = existingStats.joins || 0;
+        this.stats.leaves = existingStats.leaves || 0;
+        this.stats.messages = existingStats.messages || 0;
       } else {
-        const existingStats = JSON.parse(data);
-        this.stats.intervals = [
-          ...existingStats.intervals,
-          ...this.stats.intervals,
-        ];
-        this.stats.joins = existingStats.joins;
-        this.stats.leaves = existingStats.leaves;
-        this.stats.messages = existingStats.messages;
+        console.log("No existing stats, starting fresh.");
       }
     } catch (error) {
-      if (error.code === "ENOENT") {
-        console.log("No existing stats file, starting fresh.");
-      } else if (error instanceof SyntaxError) {
-        console.log("Invalid JSON in stats file, starting fresh.");
-      } else {
-        console.error("Error loading stats:", error);
-      }
+      console.error("Error loading stats:", error);
     }
   }
 
   async saveStats() {
     try {
-      const existingData = await fs.readFile(this.statsFile, "utf8");
-      const existingStats =
-        existingData.trim() === "" ? {} : JSON.parse(existingData);
+      const existingStats = db.get("stats") || {
+        intervals: [],
+        joins: 0,
+        leaves: 0,
+        messages: 0,
+      };
 
       const updatedStats = {
         intervals: [...existingStats.intervals, ...this.stats.intervals],
@@ -62,7 +54,7 @@ class StatsHandler {
         messages: existingStats.messages + this.stats.messages,
       };
 
-      await fs.writeFile(this.statsFile, JSON.stringify(updatedStats, null, 2));
+      db.set("stats", updatedStats);
       console.log("Stats saved.");
     } catch (error) {
       console.error("Error saving stats:", error);
@@ -100,6 +92,28 @@ class StatsHandler {
       messages: this.localMessages,
     };
     this.stats.intervals.push(currentStats);
+
+    // Filter intervals to only keep data for the past 24 hours
+    const now = Date.now();
+    this.stats.intervals = this.stats.intervals.filter(
+      (interval) =>
+        now - new Date(interval.timestamp).getTime() <= 24 * 60 * 60 * 1000,
+    );
+
+    // Calculate joins, leaves, and messages in the past 24 hours
+    this.stats.joins = this.stats.intervals.reduce(
+      (sum, interval) => sum + interval.joins,
+      0,
+    );
+    this.stats.leaves = this.stats.intervals.reduce(
+      (sum, interval) => sum + interval.leaves,
+      0,
+    );
+    this.stats.messages = this.stats.intervals.reduce(
+      (sum, interval) => sum + interval.messages,
+      0,
+    );
+
     this.localJoins = 0;
     this.localLeaves = 0;
     this.localMessages = 0;
