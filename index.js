@@ -7,6 +7,7 @@ const { Strategy } = require("passport-discord");
 const {
   Client,
   GatewayIntentBits,
+  ChannelType,
   GuildSystemChannelFlags,
 } = require("discord.js");
 const config = require("./config.json");
@@ -250,13 +251,11 @@ app.get("/api/embeds", ensureAuthenticated, async (req, res) => {
 // Create or update an embed and send/update the message
 app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
   const { embedData, channelID, messageID } = req.body;
-
   if (!embedData || !channelID) {
     return res
       .status(400)
       .json({ error: "Embed data and channel ID are required" });
   }
-
   try {
     const embed = {
       title: embedData.title,
@@ -264,14 +263,12 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
       fields: embedData.fields || [],
       // Add other embed fields as needed
     };
-
     const channel = await client.channels.fetch(channelID);
-    if (!channel.isText()) {
+    if (channel.type !== ChannelType.GuildText) {
       return res
         .status(400)
         .json({ error: "Channel ID is not a text channel" });
     }
-
     let message;
     if (messageID) {
       // Update existing message
@@ -281,13 +278,11 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
       // Send new message
       message = await channel.send({ embeds: [embed] });
     }
-
     // Store the embed data with the message ID
     const storedEmbedData = { ...embedData, channelID, messageID: message.id };
     const db = get("embeds") || {};
     db[message.id] = storedEmbedData;
     set("embeds", db);
-
     res
       .status(201)
       .json({ message: "Embed saved and message sent/updated successfully" });
