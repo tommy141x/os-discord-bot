@@ -246,6 +246,36 @@
       "timestamp": "2024-06-20T07:02:09.222Z",
       "totalMembers": 754,
       "onlineMembers": 104
+    },
+    {
+      "timestamp": "2024-06-20T18:35:33.041Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
+    },
+    {
+      "timestamp": "2024-06-20T18:36:33.041Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
+    },
+    {
+      "timestamp": "2024-06-20T18:37:33.042Z",
+      "totalMembers": 755,
+      "onlineMembers": 136
+    },
+    {
+      "timestamp": "2024-06-20T18:39:59.859Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
+    },
+    {
+      "timestamp": "2024-06-20T18:40:59.883Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
+    },
+    {
+      "timestamp": "2024-06-20T18:41:59.814Z",
+      "totalMembers": 755,
+      "onlineMembers": 139
     }
   ],
   "logs": [
@@ -503,6 +533,66 @@
       "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
       "timestamp": "2024-06-20T06:46:20.876Z",
       "type": "new-message"
+    },
+    {
+      "message": "<@600063289782698004> **sent a message in** #logs (1122772037526626364): test",
+      "timestamp": "2024-06-20T18:33:46.656Z",
+      "type": "new-message"
+    },
+    {
+      "message": "<@600063289782698004> **sent a message in** #logs (1122772037526626364): test",
+      "timestamp": "2024-06-20T18:34:03.652Z",
+      "type": "new-message"
+    },
+    {
+      "message": "<@600063289782698004> **edited a message in** <#1122772037526626364>: test \n New Content: teste",
+      "timestamp": "2024-06-20T18:34:05.953Z",
+      "type": "message"
+    },
+    {
+      "message": "<@600063289782698004> **sent a message in** #logs (1122772037526626364): test",
+      "timestamp": "2024-06-20T18:34:33.859Z",
+      "type": "new-message"
+    },
+    {
+      "message": "<@600063289782698004> **edited a message in** <#1122772037526626364>. \n **Old Content:** test \n **New Content:** teste",
+      "timestamp": "2024-06-20T18:34:36.304Z",
+      "type": "message"
+    },
+    {
+      "message": "<@600063289782698004> **sent a message in** <#1122772037526626364>:\ntest",
+      "timestamp": "2024-06-20T18:39:01.395Z",
+      "type": "new-message"
+    },
+    {
+      "message": "<@600063289782698004> **edited a message in** <#1122772037526626364>. \n **Old Content:** test \n **New Content:** testlol",
+      "timestamp": "2024-06-20T18:39:07.256Z",
+      "type": "message"
+    },
+    {
+      "message": "<@600063289782698004> **had a message deleted in** <#1122772037526626364> **by** Unknown moderator:\ntestlol",
+      "timestamp": "2024-06-20T18:39:12.192Z",
+      "type": "message"
+    },
+    {
+      "message": "<@600063289782698004> **joined voice channel** <#1170116209421860974>",
+      "timestamp": "2024-06-20T18:41:54.041Z",
+      "type": "voice"
+    },
+    {
+      "message": "<@600063289782698004> **unmuted themselves**",
+      "timestamp": "2024-06-20T18:41:54.042Z",
+      "type": "voice"
+    },
+    {
+      "message": "<@600063289782698004> **undeafened themselves**",
+      "timestamp": "2024-06-20T18:41:54.043Z",
+      "type": "voice"
+    },
+    {
+      "message": "<@600063289782698004> **left voice channel** <#1170116209421860974>",
+      "timestamp": "2024-06-20T18:41:55.970Z",
+      "type": "voice"
     }
   ]
 }

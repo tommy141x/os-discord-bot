@@ -169,7 +169,6 @@ class Logger {
     clearInterval(this.interval);
   }
 
-  // Event handler methods
   handleMemberBanned(ban) {
     const mentionString = `<@${ban.user.id}>`;
     const logEntry = `${mentionString} **was banned**`;
@@ -216,10 +215,10 @@ class Logger {
 
   handleMemberUpdated(oldMember, newMember) {
     const changes = [];
+    const mentionString = `<@${newMember.user.id}>`;
     if (oldMember.nickname !== newMember.nickname) {
-      const mentionString = `<@${newMember.user.id}>`;
       changes.push(
-        `${mentionString} **nickname changed** from "${oldMember.nickname}" to "${newMember.nickname}"`,
+        `${mentionString} **nickname changed**\n**Old:** ${oldMember.nickname}\n**New:** ${newMember.nickname}`,
       );
     }
     if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
@@ -228,15 +227,13 @@ class Logger {
       const addedRoles = newRoles.filter((r) => !oldRoles.includes(r));
       const removedRoles = oldRoles.filter((r) => !newRoles.includes(r));
       if (addedRoles.length > 0) {
-        const mentionString = `<@${newMember.user.id}>`;
         changes.push(
-          `${mentionString} **was given** the role(s): ${addedRoles.join(", ")}`,
+          `${mentionString} **was given the role(s):**\n${addedRoles.join(", ")}`,
         );
       }
       if (removedRoles.length > 0) {
-        const mentionString = `<@${newMember.user.id}>`;
         changes.push(
-          `${mentionString} **had the role(s) removed**: ${removedRoles.join(", ")}`,
+          `${mentionString} **had the role(s) removed:**\n${removedRoles.join(", ")}`,
         );
       }
     }
@@ -251,7 +248,8 @@ class Logger {
   }
 
   handleChannelCreated(channel) {
-    const logEntry = `**New channel created**: ${channel.name} (${channel.id})`;
+    const channelString = `<#${channel.id}>`;
+    const logEntry = `**New channel created:** ${channelString}.`;
     this.logEvent(
       logEntry,
       "channel",
@@ -260,7 +258,7 @@ class Logger {
   }
 
   handleChannelDeleted(channel) {
-    const logEntry = `**Channel deleted**: ${channel.name} (${channel.id})`;
+    const logEntry = `**Channel deleted:** ${channel.name}.`;
     this.logEvent(
       logEntry,
       "channel",
@@ -270,14 +268,15 @@ class Logger {
 
   handleChannelUpdated(oldChannel, newChannel) {
     const changes = [];
+    const channelString = `<#${newChannel.id}>`;
     if (oldChannel.name !== newChannel.name) {
       changes.push(
-        `**Channel name changed**: ${oldChannel.name} (${oldChannel.id}) -> ${newChannel.name}`,
+        `**Channel name changed:** ${channelString}\n**Old:** ${oldChannel.name}\n**New:** ${newChannel.name}`,
       );
     }
     if (oldChannel.topic !== newChannel.topic) {
       changes.push(
-        `**Channel topic changed** for ${newChannel.name} (${newChannel.id}): ${newChannel.topic}`,
+        `**Channel topic changed:** ${channelString}\n**New topic:** ${newChannel.topic}`,
       );
     }
     changes.forEach((change) =>
@@ -290,7 +289,8 @@ class Logger {
   }
 
   handleThreadCreated(thread) {
-    const logEntry = `**New thread created**: ${thread.name} (${thread.id})`;
+    const channelString = `<#${thread.id}>`;
+    const logEntry = `**New thread created:** ${channelString}.`;
     this.logEvent(
       logEntry,
       "new-thread",
@@ -299,7 +299,7 @@ class Logger {
   }
 
   handleThreadDeleted(thread) {
-    const logEntry = `**Thread deleted**: ${thread.name} (${thread.id})`;
+    const logEntry = `**Thread deleted:** ${thread.name}.`;
     this.logEvent(
       logEntry,
       "thread",
@@ -309,9 +309,10 @@ class Logger {
 
   handleThreadUpdated(oldThread, newThread) {
     const changes = [];
+    const channelString = `<#${newThread.id}>`;
     if (oldThread.name !== newThread.name) {
       changes.push(
-        `**Thread name changed**: ${oldThread.name} (${oldThread.id}) -> ${newThread.name}`,
+        `**Thread name changed:** ${channelString}\n**Old:** ${oldThread.name}\n**New:** ${newThread.name}`,
       );
     }
     changes.forEach((change) =>
@@ -320,12 +321,12 @@ class Logger {
   }
 
   handleRoleCreated(role) {
-    const logEntry = `**New role created**: ${role.name} (${role.id})`;
+    const logEntry = `**New role created:** ${role.name} (${role.id})`;
     this.logEvent(logEntry, "role", this.settings.logRoleCreations.channelId);
   }
 
   handleRoleDeleted(role) {
-    const logEntry = `**Role deleted**: ${role.name} (${role.id})`;
+    const logEntry = `**Role deleted:** ${role.name} (${role.id})`;
     this.logEvent(logEntry, "role", this.settings.logRoleDeletions.channelId);
   }
 
@@ -333,12 +334,12 @@ class Logger {
     const changes = [];
     if (oldRole.name !== newRole.name) {
       changes.push(
-        `**Role name changed**: ${oldRole.name} (${oldRole.id}) -> ${newRole.name}`,
+        `**Role name changed:**\n**Old:** ${oldRole.name}\n**New:** ${newRole.name} (${newRole.id})`,
       );
     }
     if (oldRole.color !== newRole.color) {
       changes.push(
-        `**Role color changed** for ${newRole.name} (${newRole.id}): ${newRole.hexColor}`,
+        `**Role color changed:** ${newRole.name} (${newRole.id})\n**New color:** ${newRole.hexColor}`,
       );
     }
     changes.forEach((change) =>
@@ -349,7 +350,8 @@ class Logger {
   handleMessageCreated(message) {
     if (message.author.id === this.client.user.id) return; // Skip logging if it's the bot's own message
     const mentionString = `<@${message.author.id}>`;
-    const logEntry = `${mentionString} **sent a message** in #${message.channel.name} (${message.channel.id}): ${message.content}`;
+    const channelString = `<#${message.channel.id}>`;
+    const logEntry = `${mentionString} **sent a message in** ${channelString}:\n${message.content}`;
     this.logEvent(
       logEntry,
       "new-message",
@@ -358,22 +360,11 @@ class Logger {
     );
   }
 
-  handleMessageDeleted(message) {
-    if (message.author.id === this.client.user.id) return; // Skip logging if it's the bot's own message
-    const mentionString = `<@${message.author.id}>`;
-    const logEntry = `${mentionString} **had a message deleted** in #${message.channel.name} (${message.channel.id}): ${message.content}`;
-    this.logEvent(
-      logEntry,
-      "message",
-      this.settings.logMessageDeletions.channelId,
-      message.author,
-    );
-  }
-
   handleMessageEdited(oldMessage, newMessage) {
     if (newMessage.author.id === this.client.user.id) return; // Skip logging if it's the bot's own message
     const mentionString = `<@${newMessage.author.id}>`;
-    const logEntry = `${mentionString} **edited a message** in #${newMessage.channel.name} (${newMessage.channel.id}): Old Content: ${oldMessage.content}, New Content: ${newMessage.content}`;
+    const channelString = `<#${newMessage.channel.id}>`;
+    const logEntry = `${mentionString} **edited a message in** ${channelString}. \n **Old Content:** ${oldMessage.content} \n **New Content:** ${newMessage.content}`;
     this.logEvent(
       logEntry,
       "message",
@@ -382,27 +373,42 @@ class Logger {
     );
   }
 
+  handleMessageDeleted(message) {
+    if (message.author.id === this.client.user.id) return; // Skip logging if it's the bot's own message
+    const mentionString = `<@${message.author.id}>`;
+    const channelString = `<#${message.channel.id}>`;
+    const moderatorString = message.executor
+      ? `<@${message.executor.id}>`
+      : "Unknown moderator";
+    const logEntry = `${mentionString} **had a message deleted in** ${channelString} **by** ${moderatorString}:\n${message.content}`;
+    this.logEvent(
+      logEntry,
+      "message",
+      this.settings.logMessageDeletions.channelId,
+      message.author,
+    );
+  }
+
   handleVoiceStateUpdate(oldState, newState) {
     const changes = [];
     const member = newState.member;
+    const mentionString = `<@${member.user.id}>`;
     if (oldState.channelId === null && newState.channelId !== null) {
-      const mentionString = `<@${member.user.id}>`;
+      const channelString = `<#${newState.channelId}>`;
       changes.push(
-        `${mentionString} **joined voice channel** ${newState.channel.name} (${newState.channel.id})`,
+        `${mentionString} **joined voice channel** ${channelString}`,
       );
     } else if (oldState.channelId !== null && newState.channelId === null) {
-      const mentionString = `<@${member.user.id}>`;
-      changes.push(
-        `${mentionString} **left voice channel** ${oldState.channel.name} (${oldState.channel.id})`,
-      );
+      const channelString = `<#${oldState.channelId}>`;
+      changes.push(`${mentionString} **left voice channel** ${channelString}`);
     } else if (oldState.channelId !== newState.channelId) {
-      const mentionString = `<@${member.user.id}>`;
+      const oldChannelString = `<#${oldState.channelId}>`;
+      const newChannelString = `<#${newState.channelId}>`;
       changes.push(
-        `${mentionString} **switched voice channels** from ${oldState.channel.name} (${oldState.channel.id}) to ${newState.channel.name} (${newState.channel.id})`,
+        `${mentionString} **switched voice channels**\n**From:** ${oldChannelString}\n**To:** ${newChannelString}`,
       );
     }
     if (oldState.selfMute !== newState.selfMute) {
-      const mentionString = `<@${member.user.id}>`;
       changes.push(
         `${mentionString} **${
           newState.selfMute ? "muted" : "unmuted"
@@ -410,7 +416,6 @@ class Logger {
       );
     }
     if (oldState.selfDeaf !== newState.selfDeaf) {
-      const mentionString = `<@${member.user.id}>`;
       changes.push(
         `${mentionString} **${
           newState.selfDeaf ? "deafened" : "undeafened"
@@ -428,7 +433,8 @@ class Logger {
   }
 
   handleInviteCreated(invite) {
-    const logEntry = `**New invite created**: ${invite.code} (${invite.url}) for ${invite.channel.name} (${invite.channel.id})`;
+    const channelString = `<#${invite.channel.id}>`;
+    const logEntry = `**New invite created:** ${invite.code}\n**URL:** ${invite.url}\n**Channel:** ${channelString}`;
     this.logEvent(
       logEntry,
       "new-invite",
@@ -437,7 +443,8 @@ class Logger {
   }
 
   handleInviteDeleted(invite) {
-    const logEntry = `**Invite deleted**: ${invite.code} for ${invite.channel.name} (${invite.channel.id})`;
+    const channelString = `<#${invite.channel.id}>`;
+    const logEntry = `**Invite deleted:** ${invite.code}\n**Channel:** ${channelString}`;
     this.logEvent(
       logEntry,
       "invite",
@@ -449,7 +456,7 @@ class Logger {
     const changes = [];
     if (oldGuild.name !== newGuild.name) {
       changes.push(
-        `**Server name changed**: ${oldGuild.name} -> ${newGuild.name}`,
+        `**Server name changed:**\n**Old:** ${oldGuild.name}\n**New:** ${newGuild.name}`,
       );
     }
     changes.forEach((change) =>
@@ -458,11 +465,12 @@ class Logger {
   }
 
   handleChannelPermissionsUpdated(oldOverwrite, newOverwrite) {
+    const channelString = `<#${newOverwrite.channel.id}>`;
     const subject =
       newOverwrite.type === "role"
-        ? `**Role ${newOverwrite.role.name} (${newOverwrite.role.id})**`
-        : `**Member ${newOverwrite.member.user.tag} (${newOverwrite.member.user.id})**`;
-    const logEntry = `Channel permissions updated: ${subject} in ${newOverwrite.channel.name} (${newOverwrite.channel.id})`;
+        ? `**Role ${newOverwrite.role.name}** (${newOverwrite.role.id})`
+        : `**Member <@${newOverwrite.member.user.id}>** (${newOverwrite.member.user.id})`;
+    const logEntry = `**Channel permissions updated:**\n**Subject:** ${subject}\n**Channel:** ${channelString}`;
     this.logEvent(
       logEntry,
       "channel",
