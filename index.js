@@ -230,7 +230,6 @@ app.get("/logout", (req, res) => {
 
 app.use(express.json());
 
-// Fetch detailed guild information and stats
 app.get("/api/guild", ensureAuthenticated, async (req, res) => {
   try {
     const guild = await client.guilds.fetch(config.guildID);
@@ -239,6 +238,12 @@ app.get("/api/guild", ensureAuthenticated, async (req, res) => {
     const onlineMembers = guildPreview.approximatePresenceCount;
     const stats = db.get("stats");
     const logs = db.get("logs");
+
+    const channels = guild.channels.cache.map((channel) => ({
+      id: channel.id,
+      name: channel.name,
+      type: channel.type,
+    }));
 
     const guildData = {
       id: guild.id,
@@ -268,6 +273,7 @@ app.get("/api/guild", ensureAuthenticated, async (req, res) => {
       ),
       totalMembers,
       onlineMembers,
+      channels,
     };
 
     res.json({ guildData, stats: stats, logs: logs });

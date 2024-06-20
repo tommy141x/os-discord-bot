@@ -505,6 +505,15 @@
               // Filter logs for the last 24 hours
               const logsLast24Hours = logs.filter(log => new Date(log.timestamp) >= twentyFourHoursAgo);
 
+              function convertTo12Hour(time) {
+                const [hours, minutes] = time.split(':');
+                let h = parseInt(hours);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12;
+                h = h ? h : 12; // the hour '0' should be '12'
+                return `${h}:${minutes} ${ampm}`;
+              }
+
               // Function to group logs by 30 minutes and sum the values
               function groupLogsByHalfHour(logs, type) {
                 const grouped = {};
@@ -513,7 +522,8 @@
                 for (let d = new Date(twentyFourHoursAgo); d <= now; d.setMinutes(d.getMinutes() + 30)) {
                   const halfHour = Math.floor(d.getMinutes() / 30) * 30;
                   const key = `${d.getHours()}:${halfHour === 0 ? '00' : halfHour}`;
-                  grouped[key] = 0;
+                  const formattedKey = convertTo12Hour(key);
+                  grouped[formattedKey] = 0;
                 }
 
                 // Add log counts to the respective 30-minute intervals
@@ -521,8 +531,9 @@
                   const timestamp = new Date(log.timestamp);
                   const halfHour = Math.floor(timestamp.getMinutes() / 30) * 30;
                   const key = `${timestamp.getHours()}:${halfHour === 0 ? '00' : halfHour}`;
+                  const formattedKey = convertTo12Hour(key);
 
-                  grouped[key] += 1;
+                  grouped[formattedKey] += 1;
                 });
 
                 return Object.entries(grouped).map(([time, count]) => ({
@@ -541,9 +552,18 @@
               document.getElementById("messages24HoursText").textContent = `${messages.reduce((acc, cur) => acc + cur.y, 0)} Messages (Last 24 Hours)`;
 
               // Prepare data for charts
-              const timestamps = stats.map(interval => new Date(interval.timestamp).toLocaleTimeString());
-              const totalMembersData = stats.map(interval => interval.totalMembers);
-              const onlineMembersData = stats.map(interval => interval.onlineMembers);
+              const timestamps = stats.map(interval => {
+                const date = new Date(interval.timestamp);
+                return convertTo12Hour(`${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`);
+              });
+              const totalMembersData = stats.map(interval => ({
+                x: convertTo12Hour(`${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, '0')}`),
+                y: interval.totalMembers
+              }));
+              const onlineMembersData = stats.map(interval => ({
+                x: convertTo12Hour(`${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, '0')}`),
+                y: interval.onlineMembers
+              }));
 
               const chartOptions = {
                 scales: {
@@ -656,29 +676,15 @@
                 </div>
 
                 <div class="uk-margin">
-                    <label class="uk-form-label" for="systemChannelId"
-                        >System Messages Channel ID:</label
-                    >
-                    <input
-                        class="uk-input"
-                        type="text"
+                    <label class="uk-form-label" for="systemChannelId">System Messages Channel:</label>
+                    <select
+                        class="uk-select"
                         id="systemChannelId"
                         name="systemChannelId"
-                        placeholder="Channel ID"
-                    />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="preferredLocale"
-                        >Server Region:</label
                     >
-                    <input
-                        class="uk-input"
-                        type="text"
-                        id="preferredLocale"
-                        name="preferredLocale"
-                        placeholder="e.g., en-US, ja"
-                    />
+                        <option value="">Select a channel</option>
+                        <!-- Options will be dynamically populated -->
+                    </select>
                 </div>
 
                 <div class="uk-margin">
@@ -773,87 +779,62 @@
                     const response = await fetch(`/api/guild`);
                     const { guildData } = await response.json();
 
-                    document.getElementById(
-                        "defaultMessageNotifications",
-                    ).value = guildData.defaultMessageNotifications;
-                    document.getElementById("explicitContentFilter").value =
-                        guildData.explicitContentFilter;
-                    document.getElementById("systemChannelId").value =
-                        guildData.systemChannelId || "";
-                    document.getElementById("preferredLocale").value =
-                        guildData.preferredLocale;
-                    document.getElementById("sendWelcomeMessage").checked =
-                        guildData.sendWelcomeMessage;
-                    document.getElementById("promptWelcomeSticker").checked =
-                        guildData.promptWelcomeSticker;
-                    document.getElementById("sendBoostMessage").checked =
-                        guildData.sendBoostMessage;
-                    document.getElementById("sendPurchaseMessage").checked =
-                        guildData.sendPurchaseMessage;
-                    document.getElementById(
-                        "promptSubscriptionSticker",
-                    ).checked = guildData.promptSubscriptionSticker;
-                    document.getElementById("sendHelpfulTips").checked =
-                        guildData.sendHelpfulTips;
+                    // Populate the system channel dropdown
+                    const systemChannelDropdown = document.getElementById("systemChannelId");
+                    guildData.channels.forEach(channel => {
+                        if (channel.type === 0) { // 0 is the type for text channels
+                            const option = document.createElement("option");
+                            option.value = channel.id;
+                            option.textContent = "#" + channel.name + " - (" + channel.id + ")";
+                            systemChannelDropdown.appendChild(option);
+                        }
+                    });
 
-                    document
-                        .getElementById("updateButton")
-                        .addEventListener("click", async () => {
-                            const updatedData = {
-                                defaultMessageNotifications:
-                                    document.getElementById(
-                                        "defaultMessageNotifications",
-                                    ).value,
-                                explicitContentFilter: document.getElementById(
-                                    "explicitContentFilter",
-                                ).value,
-                                systemChannelId:
-                                    document.getElementById("systemChannelId")
-                                        .value,
-                                preferredLocale:
-                                    document.getElementById("preferredLocale")
-                                        .value,
-                                sendWelcomeMessage:
-                                    document.getElementById(
-                                        "sendWelcomeMessage",
-                                    ).checked,
-                                promptWelcomeSticker: document.getElementById(
-                                    "promptWelcomeSticker",
-                                ).checked,
-                                sendBoostMessage:
-                                    document.getElementById("sendBoostMessage")
-                                        .checked,
-                                sendPurchaseMessage: document.getElementById(
-                                    "sendPurchaseMessage",
-                                ).checked,
-                                promptSubscriptionSticker:
-                                    document.getElementById(
-                                        "promptSubscriptionSticker",
-                                    ).checked,
-                                sendHelpfulTips:
-                                    document.getElementById("sendHelpfulTips")
-                                        .checked,
-                            };
+                    // Set the selected option
+                    systemChannelDropdown.value = guildData.systemChannelId || "";
 
-                            const updateResponse = await fetch(`/api/guild`, {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify(updatedData),
-                            });
+                    // Rest of the code remains the same
+                    document.getElementById("defaultMessageNotifications").value = guildData.defaultMessageNotifications;
+                    document.getElementById("explicitContentFilter").value = guildData.explicitContentFilter;
+                    document.getElementById("sendWelcomeMessage").checked = guildData.sendWelcomeMessage;
+                    document.getElementById("promptWelcomeSticker").checked = guildData.promptWelcomeSticker;
+                    document.getElementById("sendBoostMessage").checked = guildData.sendBoostMessage;
+                    document.getElementById("sendPurchaseMessage").checked = guildData.sendPurchaseMessage;
+                    document.getElementById("promptSubscriptionSticker").checked = guildData.promptSubscriptionSticker;
+                    document.getElementById("sendHelpfulTips").checked = guildData.sendHelpfulTips;
 
-                            if (updateResponse.ok) {
-                                UIkit.notification({
-                                    message:
-                                        "<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Succesfully updated settings.</div>",
-                                });
-                            } else {
-                                UIkit.notification({
-                                    message: "There was an error!",
-                                });
-                            }
+                    document.getElementById("updateButton").addEventListener("click", async () => {
+                        const updatedData = {
+                            defaultMessageNotifications: document.getElementById("defaultMessageNotifications").value,
+                            explicitContentFilter: document.getElementById("explicitContentFilter").value,
+                            systemChannelId: document.getElementById("systemChannelId").value,
+                            preferredLocale: guildData.preferredLocale,
+                            sendWelcomeMessage: document.getElementById("sendWelcomeMessage").checked,
+                            promptWelcomeSticker: document.getElementById("promptWelcomeSticker").checked,
+                            sendBoostMessage: document.getElementById("sendBoostMessage").checked,
+                            sendPurchaseMessage: document.getElementById("sendPurchaseMessage").checked,
+                            promptSubscriptionSticker: document.getElementById("promptSubscriptionSticker").checked,
+                            sendHelpfulTips: document.getElementById("sendHelpfulTips").checked,
+                        };
+
+                        const updateResponse = await fetch(`/api/guild`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(updatedData),
                         });
+
+                        if (updateResponse.ok) {
+                            UIkit.notification({
+                                message: "<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Successfully updated settings.</div>",
+                            });
+                        } else {
+                            UIkit.notification({
+                                message: "There was an error!",
+                            });
+                        }
+                    });
                 });
             </script>
         </div>
@@ -866,17 +847,16 @@
                     class="uk-card uk-card-default uk-card-body"
                 >
                     <div class="uk-margin">
-                        <label class="uk-form-label" for="channelID"
-                            >Channel ID:</label
-                        >
-                        <input
-                            class="uk-input"
-                            type="text"
-                            id="channelID"
-                            name="channelID"
-                            placeholder="Enter channel ID"
-                        />
-                    </div>
+                                <label class="uk-form-label" for="channelID">Channel:</label>
+                                <select
+                                    class="uk-select"
+                                    id="channelID"
+                                    name="channelID"
+                                >
+                                    <option value="">Select a channel</option>
+                                    <!-- Options will be dynamically populated -->
+                                </select>
+                            </div>
 
                     <div class="uk-margin">
                         <label class="uk-form-label" for="embedTitle"
@@ -955,53 +935,62 @@
             </div>
 
             <script>
+                let channels = [];
+
+                async function fetchChannels() {
+                    try {
+                        const response = await fetch('/api/guild');
+                        const guildData = await response.json();
+                        channels = guildData.guildData.channels.filter(channel => channel.type === 0); // Filter for text channels
+                        populateChannelDropdown();
+                    } catch (error) {
+                        console.error('Failed to fetch channels', error);
+                    }
+                }
+
+                function populateChannelDropdown() {
+                    const channelDropdown = document.getElementById('channelID');
+                    channelDropdown.innerHTML = '<option value="">Select a channel</option>';
+                    channels.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel.id;
+                        option.textContent = "#" + channel.name + " (" + channel.id + ")";
+                        channelDropdown.appendChild(option);
+                    });
+                }
+
                 async function fetchEmbeds() {
                     try {
                         const response = await fetch("/api/embeds");
                         const embeds = await response.json();
-                        const select =
-                            document.getElementById("existingEmbeds");
-                        select.innerHTML =
-                            '<option value="">Select Embed</option>';
+                        const select = document.getElementById("existingEmbeds");
+                        select.innerHTML = '<option value="">Select Embed</option>';
                         embeds.forEach((embed) => {
                             const option = document.createElement("option");
                             option.value = embed.key;
-                            option.textContent =
-                                embed.data.title + " - " + embed.key;
+                            option.textContent = embed.data.title + " - " + embed.key;
                             select.appendChild(option);
                         });
 
-                        document
-                            .getElementById("existingEmbeds")
-                            .addEventListener("change", (event) => {
-                                const selectedEmbedKey = event.target.value;
-                                if (selectedEmbedKey) {
-                                    const selectedEmbed = embeds.find(
-                                        (embed) =>
-                                            embed.key === selectedEmbedKey,
-                                    );
-                                    if (selectedEmbed) {
-                                        populateFormWithEmbedData(
-                                            selectedEmbed.data,
-                                        );
-                                        document.getElementById(
-                                            "submitButton",
-                                        ).textContent = "Update Embed";
-                                    } else {
-                                        console.log(selectedEmbedKey, embeds);
-                                        UIkit.notification({
-                                            message:
-                                                "Failed to find the selected embed",
-                                            status: "danger",
-                                        });
-                                    }
+                        document.getElementById("existingEmbeds").addEventListener("change", (event) => {
+                            const selectedEmbedKey = event.target.value;
+                            if (selectedEmbedKey) {
+                                const selectedEmbed = embeds.find((embed) => embed.key === selectedEmbedKey);
+                                if (selectedEmbed) {
+                                    populateFormWithEmbedData(selectedEmbed.data);
+                                    document.getElementById("submitButton").textContent = "Update Embed";
                                 } else {
-                                    clearForm();
-                                    document.getElementById(
-                                        "submitButton",
-                                    ).textContent = "Send Embed";
+                                    console.log(selectedEmbedKey, embeds);
+                                    UIkit.notification({
+                                        message: "Failed to find the selected embed",
+                                        status: "danger",
+                                    });
                                 }
-                            });
+                            } else {
+                                clearForm();
+                                document.getElementById("submitButton").textContent = "Send Embed";
+                            }
+                        });
                     } catch (error) {
                         console.error("Failed to fetch embeds", error);
                     }
@@ -1012,7 +1001,7 @@
                     document.getElementById("embedTitle").value = embedData.title;
                     document.getElementById("embedDescription").value = embedData.description;
                     document.getElementById("embedImage").value = embedData.image || "";
-                    document.getElementById("messageID").value = embedData.messageID || ""; // Set the messageID
+                    document.getElementById("messageID").value = embedData.messageID || "";
 
                     const fieldContainer = document.getElementById("embedFieldsContainer");
                     fieldContainer.innerHTML = "";
@@ -1023,8 +1012,7 @@
 
                 function clearForm() {
                     document.getElementById("embedSettingsForm").reset();
-                    document.getElementById("embedFieldsContainer").innerHTML =
-                        "";
+                    document.getElementById("embedFieldsContainer").innerHTML = "";
                 }
 
                 document.getElementById("submitButton").addEventListener("click", async () => {
@@ -1032,10 +1020,10 @@
                     const title = document.getElementById("embedTitle").value;
                     const description = document.getElementById("embedDescription").value;
                     const image = document.getElementById("embedImage").value;
-                    const messageID = document.getElementById("messageID").value; // Get the messageID
+                    const messageID = document.getElementById("messageID").value;
 
                     if (!channelID || !title || !description) {
-                        UIkit.notification({ message: "Channel ID, Title, and Description are required.", status: 'danger' });
+                        UIkit.notification({ message: "Channel, Title, and Description are required.", status: 'danger' });
                         return;
                     }
 
@@ -1051,7 +1039,7 @@
                         const response = await fetch("/api/embeds", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ embedData, channelID, messageID }), // Include messageID
+                            body: JSON.stringify({ embedData, channelID, messageID }),
                         });
 
                         const result = await response.json();
@@ -1068,11 +1056,7 @@
                     }
                 });
 
-                function addFieldToContainer(
-                    name = "",
-                    value = "",
-                    inline = false,
-                ) {
+                function addFieldToContainer(name = "", value = "", inline = false) {
                     const fieldContainer = document.createElement("div");
                     fieldContainer.classList.add("embed-field");
                     fieldContainer.innerHTML = `
@@ -1083,24 +1067,21 @@
                             <input type="checkbox" class="uk-checkbox embed-field-inline" ${inline ? "checked" : ""} /> Inline
                         </label>
                     `;
-                    document
-                        .getElementById("embedFieldsContainer")
-                        .appendChild(fieldContainer);
+                    document.getElementById("embedFieldsContainer").appendChild(fieldContainer);
 
-                    fieldContainer
-                        .querySelector(".remove-field-button")
-                        .addEventListener("click", () => {
-                            fieldContainer.remove();
-                        });
+                    fieldContainer.querySelector(".remove-field-button").addEventListener("click", () => {
+                        fieldContainer.remove();
+                    });
                 }
 
-                document
-                    .getElementById("addFieldButton")
-                    .addEventListener("click", () => {
-                        addFieldToContainer();
-                    });
+                document.getElementById("addFieldButton").addEventListener("click", () => {
+                    addFieldToContainer();
+                });
 
-                window.addEventListener("DOMContentLoaded", fetchEmbeds);
+                window.addEventListener("DOMContentLoaded", () => {
+                    fetchChannels();
+                    fetchEmbeds();
+                });
             </script>
         </div>
 
@@ -1126,7 +1107,10 @@
             <!-- auto roles page -->
         </div>
         <div id="logs" class="page uk-background-secondary">
-          <h2 class="uk-heading-line uk-text-center"><span>Log Settings</span></h2>
+
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Log Settings
+            </h1>
           <div id="logSettingsCards" class="uk-child-width-1-3@m uk-grid-small uk-grid-match" uk-grid>
             <!-- Log settings cards will be dynamically rendered here -->
           </div>
@@ -1142,31 +1126,43 @@
                 settingsFetch = data || {};
                 const logSettingsCards = document.getElementById('logSettingsCards');
 
-                // Render log settings cards
-                Object.entries(settingsFetch.logSettings).forEach(([key, value]) => {
-                  const card = document.createElement('div');
-                  card.innerHTML = `
-                    <div class="uk-card uk-card-default uk-card-body">
-                      <div class="uk-grid-small uk-flex-middle" uk-grid>
-                        <div class="uk-width-expand">
-                          <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, '$1 $2')}</h3>
+                // Fetch channels
+                fetch('/api/guild')
+                  .then(response => response.json())
+                  .then(data => {
+                    guildData = data.guildData;
+                    const textChannels = guildData.channels.filter(channel => channel.type === 0);
+
+                    // Render log settings cards
+                    Object.entries(settingsFetch.logSettings).forEach(([key, value]) => {
+                      const card = document.createElement('div');
+                      card.innerHTML = `
+                        <div class="uk-card uk-card-default uk-card-body">
+                          <div class="uk-grid-small uk-flex-middle" uk-grid>
+                            <div class="uk-width-expand">
+                              <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, '$1 $2')}</h3>
+                            </div>
+                            <div class="uk-width-auto">
+                              <label class="uk-switch">
+                                <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? 'checked' : ''}>
+                                <span class="uk-switch-slider"></span>
+                              </label>
+                            </div>
+                          </div>
+                          <div class="uk-margin-top">
+                            <label class="uk-form-label" for="${key}ChannelId">Log Channel:</label>
+                            <input type="hidden" id="logSetting" value="${key}">
+                            <select class="uk-select log-setting-channel-id" id="${key}ChannelId">
+                              <option value="">No channel</option>
+                              ${textChannels.map(channel => `<option value="${channel.id}" ${channel.id === value.channelId ? 'selected' : ''}>#${channel.name} - (${channel.id})</option>`).join('')}
+                            </select>
+                          </div>
                         </div>
-                        <div class="uk-width-auto">
-                          <label class="uk-switch">
-                            <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? 'checked' : ''}>
-                            <span class="uk-switch-slider"></span>
-                          </label>
-                        </div>
-                      </div>
-                      <div class="uk-margin-top">
-                        <label class="uk-form-label" for="${key}ChannelId">Channel ID:</label>
-                        <input type="hidden" id="logSetting" value="${key}">
-                        <input class="uk-input log-setting-channel-id" type="text" id="${key}ChannelId" value="${value.channelId}" placeholder="Channel ID">
-                      </div>
-                    </div>
-                  `;
-                  logSettingsCards.appendChild(card);
-                });
+                      `;
+                      logSettingsCards.appendChild(card);
+                    });
+                  })
+                  .catch(error => console.error('Error fetching guild data:', error));
               })
               .catch(error => console.error('Error fetching settings:', error));
 

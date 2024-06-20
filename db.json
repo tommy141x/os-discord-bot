@@ -59,7 +59,7 @@
       },
       "logMessageCreation": {
         "enabled": true,
-        "channelId": "1122772037526626364"
+        "channelId": ""
       },
       "logMessageDeletions": {
         "enabled": true,
@@ -276,6 +276,86 @@
       "timestamp": "2024-06-20T18:41:59.814Z",
       "totalMembers": 755,
       "onlineMembers": 139
+    },
+    {
+      "timestamp": "2024-06-20T18:43:42.081Z",
+      "totalMembers": 755,
+      "onlineMembers": 138
+    },
+    {
+      "timestamp": "2024-06-20T18:44:42.226Z",
+      "totalMembers": 755,
+      "onlineMembers": 138
+    },
+    {
+      "timestamp": "2024-06-20T18:45:42.072Z",
+      "totalMembers": 755,
+      "onlineMembers": 139
+    },
+    {
+      "timestamp": "2024-06-20T18:46:42.071Z",
+      "totalMembers": 755,
+      "onlineMembers": 140
+    },
+    {
+      "timestamp": "2024-06-20T18:47:42.124Z",
+      "totalMembers": 755,
+      "onlineMembers": 140
+    },
+    {
+      "timestamp": "2024-06-20T18:49:18.998Z",
+      "totalMembers": 755,
+      "onlineMembers": 136
+    },
+    {
+      "timestamp": "2024-06-20T18:50:18.907Z",
+      "totalMembers": 755,
+      "onlineMembers": 136
+    },
+    {
+      "timestamp": "2024-06-20T18:51:18.863Z",
+      "totalMembers": 755,
+      "onlineMembers": 136
+    },
+    {
+      "timestamp": "2024-06-20T18:52:18.882Z",
+      "totalMembers": 755,
+      "onlineMembers": 136
+    },
+    {
+      "timestamp": "2024-06-20T18:53:18.925Z",
+      "totalMembers": 755,
+      "onlineMembers": 134
+    },
+    {
+      "timestamp": "2024-06-20T18:54:18.866Z",
+      "totalMembers": 755,
+      "onlineMembers": 134
+    },
+    {
+      "timestamp": "2024-06-20T18:55:18.951Z",
+      "totalMembers": 755,
+      "onlineMembers": 134
+    },
+    {
+      "timestamp": "2024-06-20T18:56:18.891Z",
+      "totalMembers": 755,
+      "onlineMembers": 134
+    },
+    {
+      "timestamp": "2024-06-20T18:57:18.921Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
+    },
+    {
+      "timestamp": "2024-06-20T18:58:18.985Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
+    },
+    {
+      "timestamp": "2024-06-20T18:59:18.936Z",
+      "totalMembers": 755,
+      "onlineMembers": 137
     }
   ],
   "logs": [
@@ -593,6 +673,11 @@
       "message": "<@600063289782698004> **left voice channel** <#1170116209421860974>",
       "timestamp": "2024-06-20T18:41:55.970Z",
       "type": "voice"
+    },
+    {
+      "message": "<@600063289782698004> **sent a message in** <#1122772037526626364>:\nt",
+      "timestamp": "2024-06-20T18:42:56.257Z",
+      "type": "new-message"
     }
   ]
 }
