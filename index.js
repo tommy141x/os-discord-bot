@@ -11,7 +11,8 @@ const {
   GuildSystemChannelFlags,
 } = require("discord.js");
 const config = require("./config.json");
-const StatsHandler = require("./statsHandler");
+const db = require("./db");
+const Logger = require("./logger");
 const path = require("path");
 const fs = require("fs");
 
@@ -45,14 +46,16 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.MessageContent,
   ],
 });
 
-const statsHandler = new StatsHandler(client);
+let logger;
 
 app.use((req, res, next) => {
   req.client = client;
-  req.statsHandler = statsHandler;
   next();
 });
 
@@ -60,7 +63,107 @@ client.login(config.botToken);
 
 client.once("ready", () => {
   console.log("Discord bot is started!");
-  statsHandler.startTracking();
+
+  let settings = db.get("settings");
+  if (!settings || settings === {}) {
+    const defaultChannelId = "";
+    const logSettings = {
+      logMemberBans: {
+        enabled: true,
+        channelId: defaultChannelId,
+      },
+      logMemberUnbans: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logMemberLeaves: {
+        enabled: true,
+        channelId: defaultChannelId,
+      },
+      logMemberJoins: {
+        enabled: true,
+        channelId: defaultChannelId,
+      },
+      logMemberUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logChannelCreations: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logChannelDeletions: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logChannelUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logThreadCreations: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logThreadDeletions: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logThreadUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logRoleCreations: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logRoleDeletions: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logRoleUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logMessageCreation: {
+        enabled: true,
+        channelId: defaultChannelId,
+      },
+      logMessageDeletions: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logMessageEdits: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logVoiceStateUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logInviteCreations: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logInviteDeletions: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logServerUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+      logPermissionUpdates: {
+        enabled: false,
+        channelId: defaultChannelId,
+      },
+    };
+    settings = {
+      logSettings: logSettings,
+    };
+    db.set("settings", settings);
+  }
+  logger = new Logger(client, settings.logSettings);
+
   const guild = client.guilds.cache.get(config.guildID);
   if (guild) {
     const guildIconURL = guild.iconURL();
@@ -134,6 +237,8 @@ app.get("/api/guild", ensureAuthenticated, async (req, res) => {
     const guildPreview = await guild.fetch();
     const totalMembers = guild.memberCount;
     const onlineMembers = guildPreview.approximatePresenceCount;
+    const stats = db.get("stats");
+    const logs = db.get("logs");
 
     const guildData = {
       id: guild.id,
@@ -165,7 +270,7 @@ app.get("/api/guild", ensureAuthenticated, async (req, res) => {
       onlineMembers,
     };
 
-    res.json({ guildData, stats: req.statsHandler.stats });
+    res.json({ guildData, stats: stats, logs: logs });
   } catch (error) {
     res.status(500).send(error.message);
   }
@@ -231,13 +336,11 @@ app.post("/api/guild", ensureAuthenticated, async (req, res) => {
   }
 });
 
-const { get, set, list } = require("./db");
-
 // Fetch all embeds
 app.get("/api/embeds", ensureAuthenticated, async (req, res) => {
   try {
-    const db = get("embeds") || {};
-    const embedKeys = Object.keys(db); // List all keys
+    const dbFetch = db.get("embeds") || {};
+    const embedKeys = Object.keys(dbFetch); // List all keys
     const embeds = embedKeys.map((key) => ({
       key,
       data: db[key],
@@ -280,9 +383,9 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
     }
     // Store the embed data with the message ID
     const storedEmbedData = { ...embedData, channelID, messageID: message.id };
-    const db = get("embeds") || {};
-    db[message.id] = storedEmbedData;
-    set("embeds", db);
+    const dbFetch = db.get("embeds") || {};
+    dbFetch[message.id] = storedEmbedData;
+    db.set("embeds", dbFetch);
     res
       .status(201)
       .json({ message: "Embed saved and message sent/updated successfully" });
@@ -291,6 +394,40 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to save embed or send/update message" });
+  }
+});
+
+// Example route to get settings
+app.get("/api/settings", ensureAuthenticated, (req, res) => {
+  try {
+    const settings = db.get("settings") || {}; // Get current settings from the database
+    res.json(settings);
+  } catch (err) {
+    console.error("Error retrieving settings:", err);
+    res.status(500).json({ error: "Failed to retrieve settings" });
+  }
+});
+
+app.post("/api/settings", ensureAuthenticated, async (req, res) => {
+  try {
+    const updatedSettings = req.body; // Entire settings object is expected
+    const currentSettings = db.get("settings") || {};
+
+    // Check if logSettings have changed
+    if (
+      JSON.stringify(currentSettings.logSettings) !==
+      JSON.stringify(updatedSettings.logSettings)
+    ) {
+      logger.destroy();
+      logger = new Logger(client, updatedSettings.logSettings);
+    }
+
+    // Update settings in the database
+    db.set("settings", updatedSettings);
+    res.json({ message: `Settings updated successfully` });
+  } catch (err) {
+    console.error("Error setting settings:", err);
+    res.status(500).json({ error: "Failed to set settings" });
   }
 });
 

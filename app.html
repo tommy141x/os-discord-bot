@@ -483,169 +483,135 @@
             </div>
 
             <script>
-                document.addEventListener("DOMContentLoaded", async () => {
-                    const response = await fetch("/api/guild");
-                    const data = await response.json();
-                    const { guildData, stats } = data;
+            document.addEventListener("DOMContentLoaded", async () => {
+              const response = await fetch("/api/guild");
+              const data = await response.json();
+              const { guildData, stats, logs } = data;
 
-                    document.getElementById("guildIcon").src = guildData.icon;
-                    document.getElementById("guildName").textContent =
-                        guildData.name;
+              // Update guild information
+              document.getElementById("guildIcon").src = guildData.icon;
+              document.getElementById("guildName").textContent = guildData.name;
 
-                    console.log(stats);
+              const totalMembers = stats[stats.length - 1]?.totalMembers || 0;
+              const onlineMembers = stats[stats.length - 1]?.onlineMembers || 0;
 
-                    const lastInterval =
-                        stats.intervals[stats.intervals.length - 1];
+              document.getElementById("totalMembersText").textContent = `${totalMembers} Total Members`;
+              document.getElementById("onlineMembersText").textContent = `${onlineMembers} Online Members`;
 
-                    document.getElementById("totalMembersText").textContent =
-                        `${guildData.totalMembers} Total Members`;
-                    document.getElementById("onlineMembersText").textContent =
-                        `${guildData.onlineMembers} Online Members`;
-                    document.getElementById("joins24HoursText").textContent =
-                        `${stats.joins} Joins (Last 24 Hours)`;
-                    document.getElementById("leaves24HoursText").textContent =
-                        `${stats.leaves} Leaves (Last 24 Hours)`;
-                    document.getElementById("messages24HoursText").textContent =
-                        `${stats.messages} Messages (Last 24 Hours)`;
+              // Get current timestamp and timestamp for 24 hours ago
+              const now = new Date();
+              const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-                    const timestamps = stats.intervals.map((interval) =>
-                        new Date(interval.timestamp).toLocaleTimeString(),
-                    );
+              // Filter logs for the last 24 hours
+              const logsLast24Hours = logs.filter(log => new Date(log.timestamp) >= twentyFourHoursAgo);
 
-                    const chartOptions = {
-                        scales: {
-                            x: {
-                                display: false, // Hide the x-axis
-                            },
-                            y: {
-                                display: false, // Hide the y-axis
-                                beginAtZero: true,
-                            },
-                        },
-                        plugins: {
-                            legend: {
-                                display: false, // Hide the legend
-                            },
-                        },
-                    };
+              // Function to group logs by 30 minutes and sum the values
+              function groupLogsByHalfHour(logs, type) {
+                const grouped = {};
 
-                    const ctx = document
-                        .getElementById("totalMembersChart")
-                        .getContext("2d");
-                    const gradient = ctx.createLinearGradient(
-                        0,
-                        0,
-                        0,
-                        ctx.canvas.height,
-                    );
-                    gradient.addColorStop(0, "rgba(75, 192, 192, 1)"); // Start color
-                    gradient.addColorStop(1, "rgba(153, 102, 255, 1)"); // End color
+                // Initialize all 30-minute intervals in the last 24 hours with 0
+                for (let d = new Date(twentyFourHoursAgo); d <= now; d.setMinutes(d.getMinutes() + 30)) {
+                  const halfHour = Math.floor(d.getMinutes() / 30) * 30;
+                  const key = `${d.getHours()}:${halfHour === 0 ? '00' : halfHour}`;
+                  grouped[key] = 0;
+                }
 
-                    new Chart(document.getElementById("totalMembersChart"), {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Total Members",
-                                    data: stats.intervals.map(
-                                        (interval) => interval.totalMembers,
-                                    ),
-                                    borderColor: "rgba(75, 192, 192, 1)",
-                                    backgroundColor: gradient,
-                                    cubicInterpolationMode: "monotone",
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
+                // Add log counts to the respective 30-minute intervals
+                logs.filter(log => log.type === type).forEach(log => {
+                  const timestamp = new Date(log.timestamp);
+                  const halfHour = Math.floor(timestamp.getMinutes() / 30) * 30;
+                  const key = `${timestamp.getHours()}:${halfHour === 0 ? '00' : halfHour}`;
 
-                    new Chart(document.getElementById("onlineMembersChart"), {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Online Members",
-                                    data: stats.intervals.map(
-                                        (interval) => interval.onlineMembers,
-                                    ),
-                                    borderColor: "rgba(54, 162, 235, 1)",
-                                    backgroundColor: gradient,
-                                    cubicInterpolationMode: "monotone",
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(document.getElementById("joinsChart"), {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Joins",
-                                    data: stats.intervals.map(
-                                        (interval) => interval.joins,
-                                    ),
-                                    borderColor: "rgba(255, 206, 86, 1)",
-                                    backgroundColor: gradient,
-                                    cubicInterpolationMode: "monotone",
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(document.getElementById("leavesChart"), {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Leaves",
-                                    data: stats.intervals.map(
-                                        (interval) => interval.leaves,
-                                    ),
-                                    borderColor: "rgba(255, 99, 132, 1)",
-                                    backgroundColor: gradient,
-                                    cubicInterpolationMode: "monotone",
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(document.getElementById("messagesChart"), {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Messages",
-                                    data: stats.intervals.map(
-                                        (interval) => interval.messages,
-                                    ),
-                                    borderColor: "rgba(153, 102, 255, 1)",
-                                    backgroundColor: gradient,
-                                    cubicInterpolationMode: "monotone",
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
+                  grouped[key] += 1;
                 });
+
+                return Object.entries(grouped).map(([time, count]) => ({
+                  x: time,
+                  y: count
+                }));
+              }
+
+              // Count joins, leaves, and messages in the last 24 hours
+              const joins = groupLogsByHalfHour(logsLast24Hours, "join");
+              const leaves = groupLogsByHalfHour(logsLast24Hours, "left");
+              const messages = groupLogsByHalfHour(logsLast24Hours, "new-message");
+
+              document.getElementById("joins24HoursText").textContent = `${joins.reduce((acc, cur) => acc + cur.y, 0)} Joins (Last 24 Hours)`;
+              document.getElementById("leaves24HoursText").textContent = `${leaves.reduce((acc, cur) => acc + cur.y, 0)} Leaves (Last 24 Hours)`;
+              document.getElementById("messages24HoursText").textContent = `${messages.reduce((acc, cur) => acc + cur.y, 0)} Messages (Last 24 Hours)`;
+
+              // Prepare data for charts
+              const timestamps = stats.map(interval => new Date(interval.timestamp).toLocaleTimeString());
+              const totalMembersData = stats.map(interval => interval.totalMembers);
+              const onlineMembersData = stats.map(interval => interval.onlineMembers);
+
+              const chartOptions = {
+                scales: {
+                  x: { display: false },
+                  y: { display: false, beginAtZero: true },
+                },
+                plugins: {
+                  legend: { display: false },
+                },
+              };
+
+              const ctxTotalMembers = document.getElementById("totalMembersChart").getContext("2d");
+              const ctxOnlineMembers = document.getElementById("onlineMembersChart").getContext("2d");
+              const ctxJoins = document.getElementById("joinsChart").getContext("2d");
+              const ctxLeaves = document.getElementById("leavesChart").getContext("2d");
+              const ctxMessages = document.getElementById("messagesChart").getContext("2d");
+
+              const gradient = ctxTotalMembers.createLinearGradient(0, 0, 0, ctxTotalMembers.canvas.height);
+              gradient.addColorStop(0, "rgba(75, 192, 192, 1)");
+              gradient.addColorStop(1, "rgba(153, 102, 255, 1)");
+
+              // Create charts
+              new Chart(ctxTotalMembers, {
+                type: "line",
+                data: {
+                  labels: timestamps,
+                  datasets: [{ label: "Total Members", data: totalMembersData, borderColor: "rgba(75, 192, 192, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
+                },
+                options: chartOptions,
+              });
+
+              new Chart(ctxOnlineMembers, {
+                type: "line",
+                data: {
+                  labels: timestamps,
+                  datasets: [{ label: "Online Members", data: onlineMembersData, borderColor: "rgba(54, 162, 235, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
+                },
+                options: chartOptions,
+              });
+
+              new Chart(ctxJoins, {
+                type: "line",
+                data: {
+                  labels: joins.map(data => data.x),
+                  datasets: [{ label: "Joins", data: joins.map(data => data.y), borderColor: "rgba(255, 206, 86, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
+                },
+                options: chartOptions,
+              });
+
+              new Chart(ctxLeaves, {
+                type: "line",
+                data: {
+                  labels: leaves.map(data => data.x),
+                  datasets: [{ label: "Leaves", data: leaves.map(data => data.y), borderColor: "rgba(255, 99, 132, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
+                },
+                options: chartOptions,
+              });
+
+              new Chart(ctxMessages, {
+                type: "line",
+                data: {
+                  labels: messages.map(data => data.x),
+                  datasets: [{ label: "Messages", data: messages.map(data => data.y), borderColor: "rgba(153, 102, 255, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
+                },
+                options: chartOptions,
+              });
+            });
+
             </script>
         </div>
         <div id="server-settings" class="page uk-background-secondary">
@@ -1160,11 +1126,93 @@
             <!-- auto roles page -->
         </div>
         <div id="logs" class="page uk-background-secondary">
-            <!-- logs page
-             Card here with text on the top left and a checkbox on the top right, with a channel id input below it.
-             Then a button to save the settings.
-             -->
+          <h2 class="uk-heading-line uk-text-center"><span>Log Settings</span></h2>
+          <div id="logSettingsCards" class="uk-child-width-1-3@m uk-grid-small uk-grid-match" uk-grid>
+            <!-- Log settings cards will be dynamically rendered here -->
+          </div>
+          <div class="uk-margin-top">
+            <button class="uk-button uk-button-primary uk-width-1-1" id="saveLogSettings">Save Settings</button>
+          </div>
+          <script>
+            // Fetch log settings
+            let settingsFetch = {};
+            fetch('/api/settings')
+              .then(response => response.json())
+              .then(data => {
+                settingsFetch = data || {};
+                const logSettingsCards = document.getElementById('logSettingsCards');
+
+                // Render log settings cards
+                Object.entries(settingsFetch.logSettings).forEach(([key, value]) => {
+                  const card = document.createElement('div');
+                  card.innerHTML = `
+                    <div class="uk-card uk-card-default uk-card-body">
+                      <div class="uk-grid-small uk-flex-middle" uk-grid>
+                        <div class="uk-width-expand">
+                          <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, '$1 $2')}</h3>
+                        </div>
+                        <div class="uk-width-auto">
+                          <label class="uk-switch">
+                            <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? 'checked' : ''}>
+                            <span class="uk-switch-slider"></span>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="uk-margin-top">
+                        <label class="uk-form-label" for="${key}ChannelId">Channel ID:</label>
+                        <input type="hidden" id="logSetting" value="${key}">
+                        <input class="uk-input log-setting-channel-id" type="text" id="${key}ChannelId" value="${value.channelId}" placeholder="Channel ID">
+                      </div>
+                    </div>
+                  `;
+                  logSettingsCards.appendChild(card);
+                });
+              })
+              .catch(error => console.error('Error fetching settings:', error));
+
+            // Save log settings
+            const saveLogSettingsButton = document.getElementById('saveLogSettings');
+            saveLogSettingsButton.addEventListener('click', () => {
+              const logSettingCheckboxes = document.querySelectorAll('.log-setting-checkbox');
+              const logSettingChannelIds = document.querySelectorAll('.log-setting-channel-id');
+              const logSettingKeys = document.querySelectorAll('#logSetting');
+
+              const updatedSettings = {};
+
+              logSettingCheckboxes.forEach((checkbox, index) => {
+                const key = logSettingKeys[index].value;
+                const channelId = logSettingChannelIds[index].value;
+                updatedSettings[key] = {
+                  enabled: checkbox.checked,
+                  channelId
+                };
+              });
+
+              settingsFetch.logSettings = updatedSettings;
+
+              fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settingsFetch)
+              })
+                .then(response => response.json())
+                .then(data => {
+                  UIkit.notification({
+                    message: `<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Successfully updated settings.</div>`
+                  });
+                })
+                .catch(error => {
+                  console.error('Error saving settings:', error);
+                  UIkit.notification({
+                    message: "There was an error!"
+                  });
+                });
+            });
+          </script>
         </div>
+
         <div id="colors" class="page uk-background-secondary">
             <!-- colors page -->
         </div>
