@@ -14,6 +14,8 @@ const {
 const config = require("./config.json");
 const db = require("./db");
 const Logger = require("./logger");
+const GarbageCollector = require("./garbageCollector");
+const CommandHandler = require("./commands");
 const path = require("path");
 const fs = require("fs");
 
@@ -60,6 +62,7 @@ const client = new Client({
 });
 
 let logger;
+new GarbageCollector();
 
 app.use((req, res, next) => {
   req.client = client;
@@ -70,7 +73,6 @@ client.login(config.botToken);
 
 client.once("ready", () => {
   console.log("Discord bot is started!");
-
   let settings = db.get("settings");
   if (!settings) {
     const defaultChannelId = "";
@@ -170,6 +172,11 @@ client.once("ready", () => {
     db.set("settings", settings);
   }
   logger = new Logger(client, settings.logSettings);
+
+  const commandHandler = new CommandHandler(client);
+  client.on("interactionCreate", async (interaction) => {
+    await commandHandler.handleCommand(interaction);
+  });
 
   const guild = client.guilds.cache.get(config.guildID);
   if (guild) {
