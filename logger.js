@@ -17,7 +17,7 @@ class Logger {
         onlineMembers,
       };
       db.set("stats", [...(db.get("stats") || []), currentStats]);
-    }, 60000);
+    }, 60000 * 30);
   }
 
   logEvent(message, type, channelId, member) {

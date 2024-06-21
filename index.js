@@ -1,5 +1,6 @@
 const express = require("express");
 const session = require("express-session");
+const fileUpload = require("express-fileupload");
 const favicon = require("express-favicon");
 const FileStore = require("session-file-store")(session);
 const passport = require("passport");
@@ -38,6 +39,12 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(
+  fileUpload({
+    createParentPath: true,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  }),
+);
 
 // Initialize Discord client
 const client = new Client({
@@ -65,7 +72,7 @@ client.once("ready", () => {
   console.log("Discord bot is started!");
 
   let settings = db.get("settings");
-  if (!settings || settings === {}) {
+  if (!settings) {
     const defaultChannelId = "";
     const logSettings = {
       logMemberBans: {
@@ -345,12 +352,7 @@ app.post("/api/guild", ensureAuthenticated, async (req, res) => {
 // Fetch all embeds
 app.get("/api/embeds", ensureAuthenticated, async (req, res) => {
   try {
-    const dbFetch = db.get("embeds") || {};
-    const embedKeys = Object.keys(dbFetch); // List all keys
-    const embeds = embedKeys.map((key) => ({
-      key,
-      data: db[key],
-    }));
+    const embeds = db.get("embeds") || {};
     res.json(embeds);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch embeds" });
@@ -366,11 +368,37 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
       .json({ error: "Embed data and channel ID are required" });
   }
   try {
+    const authorIcon =
+      embedData.authorIcon === "undefined" || embedData.authorIcon === null
+        ? undefined
+        : embedData.authorIcon;
+    const thumbnail =
+      embedData.thumbnail === "undefined" || embedData.thumbnail === null
+        ? undefined
+        : embedData.thumbnail;
+    const image =
+      embedData.image === "undefined" || embedData.image === null
+        ? undefined
+        : embedData.image;
     const embed = {
-      title: embedData.title,
+      color: rgbStringToInt(embedData.color),
+      title: embedData.title || undefined,
+      timestamp: embedData.timestamp ? new Date() : undefined,
       description: embedData.description,
+      thumbnail: {
+        url: thumbnail || undefined,
+      },
+      image: {
+        url: image || undefined,
+      },
       fields: embedData.fields || [],
-      // Add other embed fields as needed
+      footer: {
+        text: embedData.footer || undefined,
+      },
+      author: {
+        name: embedData.author || undefined,
+        icon_url: authorIcon || undefined,
+      },
     };
     const channel = await client.channels.fetch(channelID);
     if (channel.type !== ChannelType.GuildText) {
@@ -392,9 +420,9 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
     const dbFetch = db.get("embeds") || {};
     dbFetch[message.id] = storedEmbedData;
     db.set("embeds", dbFetch);
-    res
-      .status(201)
-      .json({ message: "Embed saved and message sent/updated successfully" });
+    res.status(201).json({
+      message: "Embed saved and message sent/updated successfully",
+    });
   } catch (error) {
     console.error(error);
     res
@@ -402,6 +430,85 @@ app.post("/api/embeds", ensureAuthenticated, async (req, res) => {
       .json({ error: "Failed to save embed or send/update message" });
   }
 });
+
+app.delete("/api/embeds/:messageID", ensureAuthenticated, async (req, res) => {
+  const { messageID } = req.params;
+  try {
+    const dbFetch = db.get("embeds") || {};
+    const embedData = dbFetch[messageID];
+    if (!embedData) {
+      return res.status(404).json({ error: "Embed not found" });
+    }
+    const channel = await client.channels.fetch(embedData.channelID);
+    if (channel.type !== ChannelType.GuildText) {
+      return res
+        .status(400)
+        .json({ error: "Channel ID is not a text channel" });
+    }
+    const message = await channel.messages.fetch(messageID);
+    await message.delete();
+    // Delete associated files
+    const filesToDelete = ["authorIcon", "thumbnail", "image"];
+    for (const fileType of filesToDelete) {
+      if (embedData[fileType]) {
+        const fileName = embedData[fileType].split("/").pop();
+        fs.unlink(path.join(__dirname, "public", "media", fileName), (err) => {
+          if (err) console.error(`Error deleting ${fileType} file:`, err);
+        });
+      }
+    }
+    delete dbFetch[messageID];
+    db.set("embeds", dbFetch);
+    res.json({ message: "Embed and message deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete embed or message" });
+  }
+});
+
+app.post("/api/media", ensureAuthenticated, (req, res) => {
+  if (!req.files || Object.keys(req.files).length === 0) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const file = req.files.filepond;
+  if (!file) {
+    return res.status(400).json({ error: "File not found in request" });
+  }
+
+  const fileName = file.name;
+  const filePath = path.join(__dirname, "public", "media", fileName);
+
+  file.mv(filePath, (err) => {
+    if (err) {
+      console.error("Error saving file:", err);
+      return res.status(500).json({ error: "Failed to save file" });
+    }
+    const fileURL = `${config.publicURL}/media/${fileName}`;
+    res.json({ message: "File uploaded successfully", url: fileURL });
+  });
+});
+
+app.delete("/api/media/:fileName", ensureAuthenticated, (req, res) => {
+  const { fileName } = req.params;
+  const filePath = path.join(__dirname, "public", "media", fileName);
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error deleting file:", err);
+        return res.status(500).json({ error: "Failed to delete file" });
+      }
+      res.json({ message: "File deleted successfully" });
+    });
+  });
+});
+
+app.use("/media", express.static(path.join(__dirname, "public", "media")));
 
 // Example route to get settings
 app.get("/api/settings", ensureAuthenticated, (req, res) => {
@@ -436,6 +543,17 @@ app.post("/api/settings", ensureAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Failed to set settings" });
   }
 });
+
+function rgbStringToInt(rgbString) {
+  // Remove the "rgb(" and ")" from the string
+  const cleanedString = rgbString.replace("rgb(", "").replace(")", "");
+  const [r, g, b] = cleanedString.split(",");
+
+  // Convert each component to an integer and combine them
+  const colorInt = (parseInt(r) << 16) | (parseInt(g) << 8) | parseInt(b);
+
+  return colorInt;
+}
 
 // Define your routes
 app.get("/", ensureAuthenticated, (req, res) => {

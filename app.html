@@ -483,155 +483,244 @@
             </div>
 
             <script>
-            document.addEventListener("DOMContentLoaded", async () => {
-              const response = await fetch("/api/guild");
-              const data = await response.json();
-              const { guildData, stats, logs } = data;
+                document.addEventListener("DOMContentLoaded", async () => {
+                    const response = await fetch("/api/guild");
+                    const data = await response.json();
+                    const { guildData, stats, logs } = data;
 
-              // Update guild information
-              document.getElementById("guildIcon").src = guildData.icon;
-              document.getElementById("guildName").textContent = guildData.name;
+                    // Update guild information
+                    document.getElementById("guildIcon").src = guildData.icon;
+                    document.getElementById("guildName").textContent =
+                        guildData.name;
 
-              const totalMembers = stats[stats.length - 1]?.totalMembers || 0;
-              const onlineMembers = stats[stats.length - 1]?.onlineMembers || 0;
+                    const totalMembers =
+                        stats[stats.length - 1]?.totalMembers || 0;
+                    const onlineMembers =
+                        stats[stats.length - 1]?.onlineMembers || 0;
 
-              document.getElementById("totalMembersText").textContent = `${totalMembers} Total Members`;
-              document.getElementById("onlineMembersText").textContent = `${onlineMembers} Online Members`;
+                    document.getElementById("totalMembersText").textContent =
+                        `${totalMembers} Total Members`;
+                    document.getElementById("onlineMembersText").textContent =
+                        `${onlineMembers} Online Members`;
 
-              // Get current timestamp and timestamp for 24 hours ago
-              const now = new Date();
-              const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                    // Get current timestamp and timestamp for 24 hours ago
+                    const now = new Date();
+                    const twentyFourHoursAgo = new Date(
+                        now.getTime() - 24 * 60 * 60 * 1000,
+                    );
 
-              // Filter logs for the last 24 hours
-              const logsLast24Hours = logs.filter(log => new Date(log.timestamp) >= twentyFourHoursAgo);
+                    // Filter logs for the last 24 hours
+                    const logsLast24Hours = logs.filter(
+                        (log) => new Date(log.timestamp) >= twentyFourHoursAgo,
+                    );
 
-              function convertTo12Hour(time) {
-                const [hours, minutes] = time.split(':');
-                let h = parseInt(hours);
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                h = h % 12;
-                h = h ? h : 12; // the hour '0' should be '12'
-                return `${h}:${minutes} ${ampm}`;
-              }
+                    function convertTo12Hour(time) {
+                        const [hours, minutes] = time.split(":");
+                        let h = parseInt(hours);
+                        const ampm = h >= 12 ? "PM" : "AM";
+                        h = h % 12;
+                        h = h ? h : 12; // the hour '0' should be '12'
+                        return `${h}:${minutes} ${ampm}`;
+                    }
 
-              // Function to group logs by 30 minutes and sum the values
-              function groupLogsByHalfHour(logs, type) {
-                const grouped = {};
+                    // Function to group logs by 30 minutes and sum the values
+                    function groupLogsByHalfHour(logs, type) {
+                        const grouped = {};
 
-                // Initialize all 30-minute intervals in the last 24 hours with 0
-                for (let d = new Date(twentyFourHoursAgo); d <= now; d.setMinutes(d.getMinutes() + 30)) {
-                  const halfHour = Math.floor(d.getMinutes() / 30) * 30;
-                  const key = `${d.getHours()}:${halfHour === 0 ? '00' : halfHour}`;
-                  const formattedKey = convertTo12Hour(key);
-                  grouped[formattedKey] = 0;
-                }
+                        // Initialize all 30-minute intervals in the last 24 hours with 0
+                        for (
+                            let d = new Date(twentyFourHoursAgo);
+                            d <= now;
+                            d.setMinutes(d.getMinutes() + 30)
+                        ) {
+                            const halfHour =
+                                Math.floor(d.getMinutes() / 30) * 30;
+                            const key = `${d.getHours()}:${halfHour === 0 ? "00" : halfHour}`;
+                            const formattedKey = convertTo12Hour(key);
+                            grouped[formattedKey] = 0;
+                        }
 
-                // Add log counts to the respective 30-minute intervals
-                logs.filter(log => log.type === type).forEach(log => {
-                  const timestamp = new Date(log.timestamp);
-                  const halfHour = Math.floor(timestamp.getMinutes() / 30) * 30;
-                  const key = `${timestamp.getHours()}:${halfHour === 0 ? '00' : halfHour}`;
-                  const formattedKey = convertTo12Hour(key);
+                        // Add log counts to the respective 30-minute intervals
+                        logs.filter((log) => log.type === type).forEach(
+                            (log) => {
+                                const timestamp = new Date(log.timestamp);
+                                const halfHour =
+                                    Math.floor(timestamp.getMinutes() / 30) *
+                                    30;
+                                const key = `${timestamp.getHours()}:${halfHour === 0 ? "00" : halfHour}`;
+                                const formattedKey = convertTo12Hour(key);
 
-                  grouped[formattedKey] += 1;
+                                grouped[formattedKey] += 1;
+                            },
+                        );
+
+                        return Object.entries(grouped).map(([time, count]) => ({
+                            x: time,
+                            y: count,
+                        }));
+                    }
+
+                    // Count joins, leaves, and messages in the last 24 hours
+                    const joins = groupLogsByHalfHour(logsLast24Hours, "join");
+                    const leaves = groupLogsByHalfHour(logsLast24Hours, "left");
+                    const messages = groupLogsByHalfHour(
+                        logsLast24Hours,
+                        "new-message",
+                    );
+
+                    document.getElementById("joins24HoursText").textContent =
+                        `${joins.reduce((acc, cur) => acc + cur.y, 0)} Joins (Last 24 Hours)`;
+                    document.getElementById("leaves24HoursText").textContent =
+                        `${leaves.reduce((acc, cur) => acc + cur.y, 0)} Leaves (Last 24 Hours)`;
+                    document.getElementById("messages24HoursText").textContent =
+                        `${messages.reduce((acc, cur) => acc + cur.y, 0)} Messages (Last 24 Hours)`;
+
+                    // Prepare data for charts
+                    const timestamps = stats.map((interval) => {
+                        const date = new Date(interval.timestamp);
+                        return convertTo12Hour(
+                            `${date.getHours()}:${date.getMinutes().toString().padStart(2, "0")}`,
+                        );
+                    });
+                    const totalMembersData = stats.map((interval) => ({
+                        x: convertTo12Hour(
+                            `${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, "0")}`,
+                        ),
+                        y: interval.totalMembers,
+                    }));
+                    const onlineMembersData = stats.map((interval) => ({
+                        x: convertTo12Hour(
+                            `${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, "0")}`,
+                        ),
+                        y: interval.onlineMembers,
+                    }));
+
+                    const chartOptions = {
+                        scales: {
+                            x: { display: false },
+                            y: { display: false, beginAtZero: true },
+                        },
+                        plugins: {
+                            legend: { display: false },
+                        },
+                    };
+
+                    const ctxTotalMembers = document
+                        .getElementById("totalMembersChart")
+                        .getContext("2d");
+                    const ctxOnlineMembers = document
+                        .getElementById("onlineMembersChart")
+                        .getContext("2d");
+                    const ctxJoins = document
+                        .getElementById("joinsChart")
+                        .getContext("2d");
+                    const ctxLeaves = document
+                        .getElementById("leavesChart")
+                        .getContext("2d");
+                    const ctxMessages = document
+                        .getElementById("messagesChart")
+                        .getContext("2d");
+
+                    const gradient = ctxTotalMembers.createLinearGradient(
+                        0,
+                        0,
+                        0,
+                        ctxTotalMembers.canvas.height,
+                    );
+                    gradient.addColorStop(0, "rgba(75, 192, 192, 1)");
+                    gradient.addColorStop(1, "rgba(153, 102, 255, 1)");
+
+                    // Create charts
+                    new Chart(ctxTotalMembers, {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "Total Members",
+                                    data: totalMembersData,
+                                    borderColor: "rgba(75, 192, 192, 1)",
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
+
+                    new Chart(ctxOnlineMembers, {
+                        type: "line",
+                        data: {
+                            labels: timestamps,
+                            datasets: [
+                                {
+                                    label: "Online Members",
+                                    data: onlineMembersData,
+                                    borderColor: "rgba(54, 162, 235, 1)",
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
+
+                    new Chart(ctxJoins, {
+                        type: "line",
+                        data: {
+                            labels: joins.map((data) => data.x),
+                            datasets: [
+                                {
+                                    label: "Joins",
+                                    data: joins.map((data) => data.y),
+                                    borderColor: "rgba(255, 206, 86, 1)",
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
+
+                    new Chart(ctxLeaves, {
+                        type: "line",
+                        data: {
+                            labels: leaves.map((data) => data.x),
+                            datasets: [
+                                {
+                                    label: "Leaves",
+                                    data: leaves.map((data) => data.y),
+                                    borderColor: "rgba(255, 99, 132, 1)",
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
+
+                    new Chart(ctxMessages, {
+                        type: "line",
+                        data: {
+                            labels: messages.map((data) => data.x),
+                            datasets: [
+                                {
+                                    label: "Messages",
+                                    data: messages.map((data) => data.y),
+                                    borderColor: "rgba(153, 102, 255, 1)",
+                                    backgroundColor: gradient,
+                                    borderWidth: 2,
+                                    fill: true,
+                                },
+                            ],
+                        },
+                        options: chartOptions,
+                    });
                 });
-
-                return Object.entries(grouped).map(([time, count]) => ({
-                  x: time,
-                  y: count
-                }));
-              }
-
-              // Count joins, leaves, and messages in the last 24 hours
-              const joins = groupLogsByHalfHour(logsLast24Hours, "join");
-              const leaves = groupLogsByHalfHour(logsLast24Hours, "left");
-              const messages = groupLogsByHalfHour(logsLast24Hours, "new-message");
-
-              document.getElementById("joins24HoursText").textContent = `${joins.reduce((acc, cur) => acc + cur.y, 0)} Joins (Last 24 Hours)`;
-              document.getElementById("leaves24HoursText").textContent = `${leaves.reduce((acc, cur) => acc + cur.y, 0)} Leaves (Last 24 Hours)`;
-              document.getElementById("messages24HoursText").textContent = `${messages.reduce((acc, cur) => acc + cur.y, 0)} Messages (Last 24 Hours)`;
-
-              // Prepare data for charts
-              const timestamps = stats.map(interval => {
-                const date = new Date(interval.timestamp);
-                return convertTo12Hour(`${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`);
-              });
-              const totalMembersData = stats.map(interval => ({
-                x: convertTo12Hour(`${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, '0')}`),
-                y: interval.totalMembers
-              }));
-              const onlineMembersData = stats.map(interval => ({
-                x: convertTo12Hour(`${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, '0')}`),
-                y: interval.onlineMembers
-              }));
-
-              const chartOptions = {
-                scales: {
-                  x: { display: false },
-                  y: { display: false, beginAtZero: true },
-                },
-                plugins: {
-                  legend: { display: false },
-                },
-              };
-
-              const ctxTotalMembers = document.getElementById("totalMembersChart").getContext("2d");
-              const ctxOnlineMembers = document.getElementById("onlineMembersChart").getContext("2d");
-              const ctxJoins = document.getElementById("joinsChart").getContext("2d");
-              const ctxLeaves = document.getElementById("leavesChart").getContext("2d");
-              const ctxMessages = document.getElementById("messagesChart").getContext("2d");
-
-              const gradient = ctxTotalMembers.createLinearGradient(0, 0, 0, ctxTotalMembers.canvas.height);
-              gradient.addColorStop(0, "rgba(75, 192, 192, 1)");
-              gradient.addColorStop(1, "rgba(153, 102, 255, 1)");
-
-              // Create charts
-              new Chart(ctxTotalMembers, {
-                type: "line",
-                data: {
-                  labels: timestamps,
-                  datasets: [{ label: "Total Members", data: totalMembersData, borderColor: "rgba(75, 192, 192, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
-                },
-                options: chartOptions,
-              });
-
-              new Chart(ctxOnlineMembers, {
-                type: "line",
-                data: {
-                  labels: timestamps,
-                  datasets: [{ label: "Online Members", data: onlineMembersData, borderColor: "rgba(54, 162, 235, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
-                },
-                options: chartOptions,
-              });
-
-              new Chart(ctxJoins, {
-                type: "line",
-                data: {
-                  labels: joins.map(data => data.x),
-                  datasets: [{ label: "Joins", data: joins.map(data => data.y), borderColor: "rgba(255, 206, 86, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
-                },
-                options: chartOptions,
-              });
-
-              new Chart(ctxLeaves, {
-                type: "line",
-                data: {
-                  labels: leaves.map(data => data.x),
-                  datasets: [{ label: "Leaves", data: leaves.map(data => data.y), borderColor: "rgba(255, 99, 132, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
-                },
-                options: chartOptions,
-              });
-
-              new Chart(ctxMessages, {
-                type: "line",
-                data: {
-                  labels: messages.map(data => data.x),
-                  datasets: [{ label: "Messages", data: messages.map(data => data.y), borderColor: "rgba(153, 102, 255, 1)", backgroundColor: gradient, borderWidth: 2, fill: true }],
-                },
-                options: chartOptions,
-              });
-            });
-
             </script>
         </div>
         <div id="server-settings" class="page uk-background-secondary">
@@ -676,7 +765,9 @@
                 </div>
 
                 <div class="uk-margin">
-                    <label class="uk-form-label" for="systemChannelId">System Messages Channel:</label>
+                    <label class="uk-form-label" for="systemChannelId"
+                        >System Messages Channel:</label
+                    >
                     <select
                         class="uk-select"
                         id="systemChannelId"
@@ -780,283 +871,587 @@
                     const { guildData } = await response.json();
 
                     // Populate the system channel dropdown
-                    const systemChannelDropdown = document.getElementById("systemChannelId");
-                    guildData.channels.forEach(channel => {
-                        if (channel.type === 0) { // 0 is the type for text channels
+                    const systemChannelDropdown =
+                        document.getElementById("systemChannelId");
+                    guildData.channels.forEach((channel) => {
+                        if (channel.type === 0) {
+                            // 0 is the type for text channels
                             const option = document.createElement("option");
                             option.value = channel.id;
-                            option.textContent = "#" + channel.name + " - (" + channel.id + ")";
+                            option.textContent =
+                                "#" + channel.name + " - (" + channel.id + ")";
                             systemChannelDropdown.appendChild(option);
                         }
                     });
 
                     // Set the selected option
-                    systemChannelDropdown.value = guildData.systemChannelId || "";
+                    systemChannelDropdown.value =
+                        guildData.systemChannelId || "";
 
                     // Rest of the code remains the same
-                    document.getElementById("defaultMessageNotifications").value = guildData.defaultMessageNotifications;
-                    document.getElementById("explicitContentFilter").value = guildData.explicitContentFilter;
-                    document.getElementById("sendWelcomeMessage").checked = guildData.sendWelcomeMessage;
-                    document.getElementById("promptWelcomeSticker").checked = guildData.promptWelcomeSticker;
-                    document.getElementById("sendBoostMessage").checked = guildData.sendBoostMessage;
-                    document.getElementById("sendPurchaseMessage").checked = guildData.sendPurchaseMessage;
-                    document.getElementById("promptSubscriptionSticker").checked = guildData.promptSubscriptionSticker;
-                    document.getElementById("sendHelpfulTips").checked = guildData.sendHelpfulTips;
+                    document.getElementById(
+                        "defaultMessageNotifications",
+                    ).value = guildData.defaultMessageNotifications;
+                    document.getElementById("explicitContentFilter").value =
+                        guildData.explicitContentFilter;
+                    document.getElementById("sendWelcomeMessage").checked =
+                        guildData.sendWelcomeMessage;
+                    document.getElementById("promptWelcomeSticker").checked =
+                        guildData.promptWelcomeSticker;
+                    document.getElementById("sendBoostMessage").checked =
+                        guildData.sendBoostMessage;
+                    document.getElementById("sendPurchaseMessage").checked =
+                        guildData.sendPurchaseMessage;
+                    document.getElementById(
+                        "promptSubscriptionSticker",
+                    ).checked = guildData.promptSubscriptionSticker;
+                    document.getElementById("sendHelpfulTips").checked =
+                        guildData.sendHelpfulTips;
 
-                    document.getElementById("updateButton").addEventListener("click", async () => {
-                        const updatedData = {
-                            defaultMessageNotifications: document.getElementById("defaultMessageNotifications").value,
-                            explicitContentFilter: document.getElementById("explicitContentFilter").value,
-                            systemChannelId: document.getElementById("systemChannelId").value,
-                            preferredLocale: guildData.preferredLocale,
-                            sendWelcomeMessage: document.getElementById("sendWelcomeMessage").checked,
-                            promptWelcomeSticker: document.getElementById("promptWelcomeSticker").checked,
-                            sendBoostMessage: document.getElementById("sendBoostMessage").checked,
-                            sendPurchaseMessage: document.getElementById("sendPurchaseMessage").checked,
-                            promptSubscriptionSticker: document.getElementById("promptSubscriptionSticker").checked,
-                            sendHelpfulTips: document.getElementById("sendHelpfulTips").checked,
-                        };
+                    document
+                        .getElementById("updateButton")
+                        .addEventListener("click", async () => {
+                            const updatedData = {
+                                defaultMessageNotifications:
+                                    document.getElementById(
+                                        "defaultMessageNotifications",
+                                    ).value,
+                                explicitContentFilter: document.getElementById(
+                                    "explicitContentFilter",
+                                ).value,
+                                systemChannelId:
+                                    document.getElementById("systemChannelId")
+                                        .value,
+                                preferredLocale: guildData.preferredLocale,
+                                sendWelcomeMessage:
+                                    document.getElementById(
+                                        "sendWelcomeMessage",
+                                    ).checked,
+                                promptWelcomeSticker: document.getElementById(
+                                    "promptWelcomeSticker",
+                                ).checked,
+                                sendBoostMessage:
+                                    document.getElementById("sendBoostMessage")
+                                        .checked,
+                                sendPurchaseMessage: document.getElementById(
+                                    "sendPurchaseMessage",
+                                ).checked,
+                                promptSubscriptionSticker:
+                                    document.getElementById(
+                                        "promptSubscriptionSticker",
+                                    ).checked,
+                                sendHelpfulTips:
+                                    document.getElementById("sendHelpfulTips")
+                                        .checked,
+                            };
 
-                        const updateResponse = await fetch(`/api/guild`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify(updatedData),
+                            const updateResponse = await fetch(`/api/guild`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify(updatedData),
+                            });
+
+                            if (updateResponse.ok) {
+                                UIkit.notification({
+                                    message:
+                                        "<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Successfully updated settings.</div>",
+                                });
+                            } else {
+                                UIkit.notification({
+                                    message: "There was an error!",
+                                });
+                            }
                         });
-
-                        if (updateResponse.ok) {
-                            UIkit.notification({
-                                message: "<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Successfully updated settings.</div>",
-                            });
-                        } else {
-                            UIkit.notification({
-                                message: "There was an error!",
-                            });
-                        }
-                    });
                 });
             </script>
         </div>
         <div id="embed-messages" class="page uk-background-secondary">
-                <h1 class="uk-h1 text-foreground" style="margin: 1rem">
-                    Embed Settings
-                </h1>
-                <form
-                    id="embedSettingsForm"
-                    class="uk-card uk-card-default uk-card-body"
-                >
-                    <div class="uk-margin">
-                                <label class="uk-form-label" for="channelID">Channel:</label>
-                                <select
-                                    class="uk-select"
-                                    id="channelID"
-                                    name="channelID"
-                                >
-                                    <option value="">Select a channel</option>
-                                    <!-- Options will be dynamically populated -->
-                                </select>
-                            </div>
+            <link
+                rel="stylesheet"
+                href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"
+            />
+            <script src="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.js"></script>
+            <link
+                href="https://unpkg.com/filepond/dist/filepond.css"
+                rel="stylesheet"
+            />
+            <link
+                href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css"
+                rel="stylesheet"
+            />
+            <script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+            <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+            <script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script>
+            <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Embed Settings
+            </h1>
+            <form
+                id="embedSettingsForm"
+                class="uk-card uk-card-default uk-card-body"
+            >
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="channelID"
+                        >Channel:</label
+                    >
+                    <select class="uk-select" id="channelID" name="channelID">
+                        <option value="">Select a channel</option>
+                    </select>
+                </div>
 
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="embedTitle"
-                            >Embed Title:</label
-                        >
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="embedTitle"
+                        >Embed Title:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="embedTitle"
+                        name="embedTitle"
+                        placeholder="Enter embed title"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="embedColor"
+                        >Embed Color:</label
+                    >
+                    <input type="text" id="embedColor" data-coloris />
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="embedDescription"
+                        >Embed Description:</label
+                    >
+                    <textarea
+                        class="uk-textarea"
+                        id="embedDescription"
+                        name="embedDescription"
+                        rows="3"
+                        placeholder="Enter embed description"
+                    ></textarea>
+                </div>
+
+                <div class="uk-margin">
+                    <label class="uk-form-label checkbox-label">
                         <input
-                            class="uk-input"
-                            type="text"
-                            id="embedTitle"
-                            name="embedTitle"
-                            placeholder="Enter embed title"
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="includeTimestamp"
+                            name="includeTimestamp"
                         />
-                    </div>
+                        Timestamp
+                    </label>
+                </div>
 
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="embedDescription"
-                            >Embed Description:</label
-                        >
-                        <textarea
-                            class="uk-textarea"
-                            id="embedDescription"
-                            name="embedDescription"
-                            rows="3"
-                            placeholder="Enter embed description"
-                        ></textarea>
-                    </div>
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="authorName"
+                        >Author Name:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="authorName"
+                        name="authorName"
+                        placeholder="Enter embed author"
+                    />
+                </div>
 
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="embedImage"
-                            >Embed Image URL:</label
-                        >
-                        <input
-                            class="uk-input"
-                            type="text"
-                            id="embedImage"
-                            name="embedImage"
-                            placeholder="Enter image URL"
-                        />
-                    </div>
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="authorIconUpload"
+                        >Author Icon:</label
+                    >
+                    <input
+                        type="file"
+                        class="filepond"
+                        name="authorIcon"
+                        accept="image/*"
+                    />
+                </div>
 
-                    <div class="uk-margin">
-                        <label class="uk-form-label">Embed Fields:</label>
-                        <div id="embedFieldsContainer">
-                            <!-- Embed fields will be added here dynamically -->
-                        </div>
-                        <button
-                            type="button"
-                            class="uk-button uk-button-default"
-                            id="addFieldButton"
-                        >
-                            Add Field
-                        </button>
-                    </div>
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="thumbnailUpload"
+                        >Thumbnail Image:</label
+                    >
+                    <input
+                        type="file"
+                        class="filepond"
+                        name="thumbnail"
+                        accept="image/*"
+                    />
+                </div>
 
-                    <div class="uk-margin">
-                        <label class="uk-form-label" for="existingEmbeds"
-                            >Select Embed to Update:</label
-                        >
-                        <select class="uk-select" id="existingEmbeds">
-                            <option value="">Select Embed</option>
-                        </select>
-                    </div>
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="mainImageUpload"
+                        >Main Image:</label
+                    >
+                    <input
+                        type="file"
+                        class="filepond"
+                        name="mainImage"
+                        accept="image/*"
+                    />
+                </div>
 
-                    <input type="hidden" id="messageID" name="messageID" />
+                <div class="uk-margin">
+                    <label class="uk-form-label">Embed Fields:</label>
+                    <div id="embedFieldsContainer"></div>
+                    <button
+                        type="button"
+                        class="uk-button uk-button-default"
+                        id="addFieldButton"
+                    >
+                        Add Field
+                    </button>
+                </div>
 
-                    <div class="uk-card-footer uk-flex uk-flex-between">
-                        <button
-                            type="button"
-                            class="uk-button uk-button-primary"
-                            id="submitButton"
-                        >
-                            Send Embed
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="embedFooter"
+                        >Embed Footer:</label
+                    >
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="embedFooter"
+                        name="embedFooter"
+                        placeholder="Enter embed footer"
+                    />
+                </div>
 
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="existingEmbeds"
+                        >Select Embed to Update:</label
+                    >
+                    <select class="uk-select" id="existingEmbeds">
+                        <option value="">Select Embed</option>
+                    </select>
+                </div>
+
+                <input type="hidden" id="messageID" name="messageID" />
+
+                <div class="uk-card-footer uk-flex uk-flex-between">
+                    <button
+                        type="button"
+                        class="uk-button uk-button-primary"
+                        id="submitButton"
+                    >
+                        Send Embed
+                    </button>
+                    <button
+                        type="button"
+                        class="uk-button uk-button-danger"
+                        id="deleteButton"
+                        style="display: none"
+                    >
+                        Delete Embed
+                    </button>
+                </div>
+            </form>
+
+            <style>
+                .filepond--root {
+                    height: 10em;
+                    width: 15em;
+                }
+
+                .filepond--panel-root {
+                    background-color: var(--background);
+                }
+
+                .filepond--file-action-button {
+                    cursor: pointer;
+                }
+            </style>
             <script>
-                let channels = [];
+                // Initialize FilePond for all file inputs
+                FilePond.registerPlugin(
+                    FilePondPluginFileValidateSize,
+                    FilePondPluginFileValidateType,
+                    FilePondPluginImagePreview,
+                );
 
-                async function fetchChannels() {
+                // Global variables
+                let ponds = [];
+                let channels = [];
+                let selectedMessageID = null;
+                let fileUploadsInProgress = 0;
+
+                // Utility functions
+                const generateUniqueId = () =>
+                    Date.now().toString(36) +
+                    Math.random().toString(36).substr(2);
+
+                // FilePond initialization and configuration
+                const initializeFilePond = (input) => {
+                    const pond = FilePond.create(input);
+                    pond.setOptions({
+                        maxFileSize: "5MB",
+                        acceptedFileTypes: ["image/*"],
+                        server: {
+                            process: handleFilePondUpload,
+                            revert: handleFilePondRevert,
+                            load: (src, load) =>
+                                fetch(src)
+                                    .then((res) => res.blob())
+                                    .then(load),
+                        },
+                        onaddfile: () => {
+                            fileUploadsInProgress++;
+                            updateSubmitButtonState();
+                        },
+                        onremovefile: () => {
+                            fileUploadsInProgress--;
+                            updateSubmitButtonState();
+                        },
+                    });
+                    return pond;
+                };
+
+                const handleFilePondUpload = (
+                    fieldName,
+                    file,
+                    metadata,
+                    load,
+                    error,
+                    progress,
+                    abort,
+                ) => {
+                    const formData = new FormData();
+                    const uniqueId = generateUniqueId();
+                    const fileExtension = file.name.split(".").pop();
+                    formData.append(
+                        "filepond",
+                        file,
+                        `${fieldName}-${uniqueId}.${fileExtension}`,
+                    );
+
+                    const request = new XMLHttpRequest();
+                    request.open("POST", "/api/media");
+                    request.upload.onprogress = (e) =>
+                        progress(e.lengthComputable, e.loaded, e.total);
+                    request.onload = () => {
+                        if (request.status >= 200 && request.status < 300) {
+                            const response = JSON.parse(request.responseText);
+                            load(response.url);
+                            document
+                                .getElementById("embedSettingsForm")
+                                .setAttribute(
+                                    `data-${fieldName}-url`,
+                                    response.url,
+                                );
+                            fileUploadsInProgress--;
+                            updateSubmitButtonState();
+                        } else {
+                            error("Upload failed");
+                            fileUploadsInProgress--;
+                            updateSubmitButtonState();
+                        }
+                    };
+                    request.send(formData);
+                    return {
+                        abort: () => {
+                            request.abort();
+                            abort();
+                        },
+                    };
+                };
+
+                const handleFilePondRevert = (uniqueFileId, load, error) => {
+                    const fileName = uniqueFileId.split("/").pop();
+                    const file = FilePond.findFile(uniqueFileId);
+                    if (file.origin === FilePond.FileOrigin.LOCAL) {
+                        load();
+                        return;
+                    }
+                    document
+                        .getElementById("embedSettingsForm")
+                        .removeAttribute(`data-${fileName}-url`);
+                    fetch(`/api/media/${fileName}`, { method: "DELETE" })
+                        .then((response) => response.json())
+                        .then((result) => {
+                            result.message === "File deleted successfully"
+                                ? load()
+                                : error("File deletion failed");
+                        })
+                        .catch((err) => {
+                            console.error("Error:", err);
+                            error("File deletion failed");
+                        });
+                };
+
+                // Initialize FilePond for all file inputs
+                const initializeAllFilePonds = () => {
+                    const fileInputs = document.querySelectorAll(
+                        'input[type="file"].filepond',
+                    );
+                    const ponds = {};
+                    fileInputs.forEach((input) => {
+                        ponds[input.name] = initializeFilePond(input);
+                    });
+                    return ponds;
+                };
+
+                // API calls
+                const fetchChannels = async () => {
                     try {
-                        const response = await fetch('/api/guild');
+                        const response = await fetch("/api/guild");
                         const guildData = await response.json();
-                        channels = guildData.guildData.channels.filter(channel => channel.type === 0); // Filter for text channels
+                        channels = guildData.guildData.channels.filter(
+                            (channel) => channel.type === 0,
+                        );
                         populateChannelDropdown();
                     } catch (error) {
-                        console.error('Failed to fetch channels', error);
+                        console.error("Failed to fetch channels", error);
                     }
-                }
+                };
 
-                function populateChannelDropdown() {
-                    const channelDropdown = document.getElementById('channelID');
-                    channelDropdown.innerHTML = '<option value="">Select a channel</option>';
-                    channels.forEach(channel => {
-                        const option = document.createElement('option');
-                        option.value = channel.id;
-                        option.textContent = "#" + channel.name + " (" + channel.id + ")";
-                        channelDropdown.appendChild(option);
-                    });
-                }
-
-                async function fetchEmbeds() {
+                const fetchEmbeds = async () => {
                     try {
                         const response = await fetch("/api/embeds");
                         const embeds = await response.json();
-                        const select = document.getElementById("existingEmbeds");
-                        select.innerHTML = '<option value="">Select Embed</option>';
-                        embeds.forEach((embed) => {
-                            const option = document.createElement("option");
-                            option.value = embed.key;
-                            option.textContent = embed.data.title + " - " + embed.key;
-                            select.appendChild(option);
-                        });
-
-                        document.getElementById("existingEmbeds").addEventListener("change", (event) => {
-                            const selectedEmbedKey = event.target.value;
-                            if (selectedEmbedKey) {
-                                const selectedEmbed = embeds.find((embed) => embed.key === selectedEmbedKey);
-                                if (selectedEmbed) {
-                                    populateFormWithEmbedData(selectedEmbed.data);
-                                    document.getElementById("submitButton").textContent = "Update Embed";
-                                } else {
-                                    console.log(selectedEmbedKey, embeds);
-                                    UIkit.notification({
-                                        message: "Failed to find the selected embed",
-                                        status: "danger",
-                                    });
-                                }
-                            } else {
-                                clearForm();
-                                document.getElementById("submitButton").textContent = "Send Embed";
-                            }
-                        });
+                        populateEmbedDropdown(embeds);
                     } catch (error) {
                         console.error("Failed to fetch embeds", error);
                     }
-                }
+                };
 
-                function populateFormWithEmbedData(embedData) {
-                    document.getElementById("channelID").value = embedData.channelID;
-                    document.getElementById("embedTitle").value = embedData.title;
-                    document.getElementById("embedDescription").value = embedData.description;
-                    document.getElementById("embedImage").value = embedData.image || "";
-                    document.getElementById("messageID").value = embedData.messageID || "";
-
-                    const fieldContainer = document.getElementById("embedFieldsContainer");
-                    fieldContainer.innerHTML = "";
-                    embedData.fields.forEach((field) => {
-                        addFieldToContainer(field.name, field.value, field.inline);
+                // DOM manipulation functions
+                const populateChannelDropdown = () => {
+                    const channelDropdown =
+                        document.getElementById("channelID");
+                    channelDropdown.innerHTML =
+                        '<option value="">Select a channel</option>';
+                    channels.forEach((channel) => {
+                        const option = document.createElement("option");
+                        option.value = channel.id;
+                        option.textContent = `#${channel.name} (${channel.id})`;
+                        channelDropdown.appendChild(option);
                     });
-                }
+                };
 
-                function clearForm() {
-                    document.getElementById("embedSettingsForm").reset();
-                    document.getElementById("embedFieldsContainer").innerHTML = "";
-                }
+                const populateEmbedDropdown = (embeds) => {
+                    const select = document.getElementById("existingEmbeds");
+                    select.innerHTML = '<option value="">Select Embed</option>';
+                    Object.entries(embeds).forEach(([messageID, embedData]) => {
+                        const option = document.createElement("option");
+                        option.value = messageID;
+                        option.textContent = `${embedData.title} - ${messageID}`;
+                        select.appendChild(option);
+                    });
 
-                document.getElementById("submitButton").addEventListener("click", async () => {
-                    const channelID = document.getElementById("channelID").value;
-                    const title = document.getElementById("embedTitle").value;
-                    const description = document.getElementById("embedDescription").value;
-                    const image = document.getElementById("embedImage").value;
-                    const messageID = document.getElementById("messageID").value;
+                    select.addEventListener("change", (event) =>
+                        handleEmbedSelection(event, embeds),
+                    );
+                };
 
-                    if (!channelID || !title || !description) {
-                        UIkit.notification({ message: "Channel, Title, and Description are required.", status: 'danger' });
-                        return;
-                    }
+                const updateSubmitButtonState = () => {
+                    const submitButton =
+                        document.getElementById("submitButton");
+                    submitButton.disabled = fileUploadsInProgress > 0;
+                };
 
-                    const embedFields = Array.from(document.getElementsByClassName("embed-field")).map((field) => ({
-                        name: field.querySelector(".embed-field-name").value,
-                        value: field.querySelector(".embed-field-value").value,
-                        inline: field.querySelector(".embed-field-inline").checked,
-                    }));
+                const handleEmbedSelection = (event, embeds) => {
+                    Object.values(ponds).forEach((pond) => pond.removeFiles());
+                    selectedMessageID = event.target.value;
+                    const deleteButton =
+                        document.getElementById("deleteButton");
 
-                    const embedData = { title, description, fields: embedFields, image };
-
-                    try {
-                        const response = await fetch("/api/embeds", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ embedData, channelID, messageID }),
-                        });
-
-                        const result = await response.json();
-                        if (response.ok) {
-                            UIkit.notification({ message: "Embed sent/updated successfully", status: 'success' });
-                            clearForm();
-                            fetchEmbeds();
+                    if (selectedMessageID) {
+                        const selectedEmbed = embeds[selectedMessageID];
+                        if (selectedEmbed) {
+                            populateFormWithEmbedData(selectedEmbed);
+                            document.getElementById(
+                                "submitButton",
+                            ).textContent = "Update Embed";
+                            deleteButton.style.display = "inline-block";
                         } else {
-                            UIkit.notification({ message: `Failed to send/update embed: ${result.error}`, status: 'danger' });
+                            UIkit.notification({
+                                message: "Failed to find the selected embed",
+                                status: "danger",
+                            });
                         }
-                    } catch (error) {
-                        console.error("Error:", error);
-                        UIkit.notification({ message: "An error occurred while sending/updating the embed", status: 'danger' });
+                    } else {
+                        clearForm();
+                        document.getElementById("submitButton").textContent =
+                            "Send Embed";
+                        deleteButton.style.display = "none";
+                        selectedMessageID = null;
                     }
-                });
+                };
 
-                function addFieldToContainer(name = "", value = "", inline = false) {
+                const populateFormWithEmbedData = (embedData) => {
+                    // Populate form fields with embed data
+                    document.getElementById("channelID").value =
+                        embedData.channelID;
+                    document.getElementById("embedTitle").value =
+                        embedData.title || "";
+                    document.getElementById("embedColor").value =
+                        embedData.color || "";
+                    document.getElementById("embedDescription").value =
+                        embedData.description || "";
+                    document.getElementById("includeTimestamp").checked =
+                        embedData.timestamp || false;
+                    document.getElementById("authorName").value =
+                        embedData.author || "";
+                    document.getElementById("embedFooter").value =
+                        embedData.footer || "";
+                    document.getElementById("messageID").value =
+                        embedData.messageID || "";
+
+                    // Handle file inputs
+                    const handleFileInput = (pondName, url) => {
+                        if (
+                            url &&
+                            url !== "undefined" &&
+                            url !== "null" &&
+                            url !== ""
+                        ) {
+                            ponds[pondName].addFile(url, { type: "local" });
+                            document
+                                .getElementById("embedSettingsForm")
+                                .setAttribute(`data-${pondName}-url`, url);
+                        }
+                    };
+
+                    handleFileInput("authorIcon", embedData.authorIcon);
+                    handleFileInput("thumbnail", embedData.thumbnail);
+                    handleFileInput("mainImage", embedData.image);
+
+                    // Populate embed fields
+                    const fieldContainer = document.getElementById(
+                        "embedFieldsContainer",
+                    );
+                    fieldContainer.innerHTML = "";
+                    if (embedData.fields) {
+                        embedData.fields.forEach((field) =>
+                            addFieldToContainer(
+                                field.name,
+                                field.value,
+                                field.inline,
+                            ),
+                        );
+                    }
+                };
+
+                const clearForm = () => {
+                    document.getElementById("embedSettingsForm").reset();
+                    document.getElementById("embedFieldsContainer").innerHTML =
+                        "";
+                    document.getElementById("deleteButton").style.display =
+                        "none";
+                    document.getElementById("submitButton").textContent =
+                        "Send Embed";
+                    Object.values(ponds).forEach((pond) => pond.removeFiles());
+                    selectedMessageID = null;
+                };
+
+                const addFieldToContainer = (
+                    name = "",
+                    value = "",
+                    inline = false,
+                ) => {
                     const fieldContainer = document.createElement("div");
                     fieldContainer.classList.add("embed-field");
                     fieldContainer.innerHTML = `
@@ -1067,21 +1462,177 @@
                             <input type="checkbox" class="uk-checkbox embed-field-inline" ${inline ? "checked" : ""} /> Inline
                         </label>
                     `;
-                    document.getElementById("embedFieldsContainer").appendChild(fieldContainer);
+                    document
+                        .getElementById("embedFieldsContainer")
+                        .appendChild(fieldContainer);
 
-                    fieldContainer.querySelector(".remove-field-button").addEventListener("click", () => {
-                        fieldContainer.remove();
+                    fieldContainer
+                        .querySelector(".remove-field-button")
+                        .addEventListener("click", () =>
+                            fieldContainer.remove(),
+                        );
+                };
+
+                // Event listeners
+                const setupEventListeners = () => {
+                    document
+                        .getElementById("submitButton")
+                        .addEventListener("click", handleSubmit);
+                    document
+                        .getElementById("addFieldButton")
+                        .addEventListener("click", () => addFieldToContainer());
+                    document
+                        .getElementById("deleteButton")
+                        .addEventListener("click", handleDelete);
+                };
+
+                // Form submission
+                const handleSubmit = async () => {
+                    const formData = getFormData();
+                    if (
+                        !formData.channelID ||
+                        !formData.embedData.title ||
+                        !formData.embedData.description
+                    ) {
+                        UIkit.notification({
+                            message:
+                                "Channel, Title, and Description are required.",
+                            status: "danger",
+                        });
+                        console.log(formData);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch("/api/embeds", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(formData),
+                        });
+
+                        const result = await response.json();
+                        if (response.ok) {
+                            UIkit.notification({
+                                message: "Embed sent/updated successfully",
+                                status: "success",
+                            });
+                            clearForm();
+                            fetchEmbeds();
+                        } else {
+                            UIkit.notification({
+                                message: `Failed to send/update embed: ${result.error}`,
+                                status: "danger",
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error:", error);
+                        UIkit.notification({
+                            message:
+                                "An error occurred while sending/updating the embed",
+                            status: "danger",
+                        });
+                    }
+                };
+
+                const getFormData = () => {
+                    const embedFields = Array.from(
+                        document.getElementsByClassName("embed-field"),
+                    ).map((field) => ({
+                        name: field.querySelector(".embed-field-name").value,
+                        value: field.querySelector(".embed-field-value").value,
+                        inline: field.querySelector(".embed-field-inline")
+                            .checked,
+                    }));
+
+                    return {
+                        channelID: document.getElementById("channelID").value,
+                        messageID: document.getElementById("messageID").value,
+                        embedData: {
+                            title: document.getElementById("embedTitle").value,
+                            color: document.getElementById("embedColor").value,
+                            description:
+                                document.getElementById("embedDescription")
+                                    .value,
+                            timestamp:
+                                document.getElementById("includeTimestamp")
+                                    .checked,
+                            author: document.getElementById("authorName").value,
+                            authorIcon: document
+                                .getElementById("embedSettingsForm")
+                                .getAttribute("data-authorIcon-url"),
+                            thumbnail: document
+                                .getElementById("embedSettingsForm")
+                                .getAttribute("data-thumbnail-url"),
+                            image: document
+                                .getElementById("embedSettingsForm")
+                                .getAttribute("data-mainImage-url"),
+                            fields: embedFields,
+                            footer: document.getElementById("embedFooter")
+                                .value,
+                        },
+                    };
+                };
+
+                // Delete functionality
+                const handleDelete = async () => {
+                    if (!selectedMessageID) {
+                        UIkit.notification({
+                            message: "No embed selected for deletion",
+                            status: "warning",
+                        });
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(
+                            `/api/embeds/${selectedMessageID}`,
+                            { method: "DELETE" },
+                        );
+                        const result = await response.json();
+                        if (response.ok) {
+                            UIkit.notification({
+                                message: "Embed deleted successfully",
+                                status: "success",
+                            });
+                            clearForm();
+                            fetchEmbeds();
+                        } else {
+                            UIkit.notification({
+                                message: `Failed to delete embed: ${result.error}`,
+                                status: "danger",
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error:", error);
+                        UIkit.notification({
+                            message:
+                                "An error occurred while deleting the embed",
+                            status: "danger",
+                        });
+                    }
+                };
+
+                // Initialize Coloris color picker
+                const initializeColorPicker = () => {
+                    Coloris({
+                        themeMode: localStorage.getItem("color-theme"),
+                        alpha: false,
+                        format: "rgb",
+                        defaultColor: "#000000",
                     });
-                }
+                };
 
-                document.getElementById("addFieldButton").addEventListener("click", () => {
-                    addFieldToContainer();
-                });
-
-                window.addEventListener("DOMContentLoaded", () => {
+                // Main initialization
+                const init = () => {
+                    ponds = initializeAllFilePonds();
                     fetchChannels();
                     fetchEmbeds();
-                });
+                    setupEventListeners();
+                    initializeColorPicker();
+                };
+
+                // Run initialization when DOM is loaded
+                window.addEventListener("DOMContentLoaded", init);
             </script>
         </div>
 
@@ -1107,44 +1658,57 @@
             <!-- auto roles page -->
         </div>
         <div id="logs" class="page uk-background-secondary">
-
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Log Settings
             </h1>
-          <div id="logSettingsCards" class="uk-child-width-1-3@m uk-grid-small uk-grid-match" uk-grid>
-            <!-- Log settings cards will be dynamically rendered here -->
-          </div>
-          <div class="uk-margin-top">
-            <button class="uk-button uk-button-primary uk-width-1-1" id="saveLogSettings">Save Settings</button>
-          </div>
-          <script>
-            // Fetch log settings
-            let settingsFetch = {};
-            fetch('/api/settings')
-              .then(response => response.json())
-              .then(data => {
-                settingsFetch = data || {};
-                const logSettingsCards = document.getElementById('logSettingsCards');
+            <div
+                id="logSettingsCards"
+                class="uk-child-width-1-3@m uk-grid-small uk-grid-match"
+                uk-grid
+            >
+                <!-- Log settings cards will be dynamically rendered here -->
+            </div>
+            <div class="uk-margin-top">
+                <button
+                    class="uk-button uk-button-primary uk-width-1-1"
+                    id="saveLogSettings"
+                >
+                    Save Settings
+                </button>
+            </div>
+            <script>
+                // Fetch log settings
+                let settingsFetch = {};
+                fetch("/api/settings")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        settingsFetch = data || {};
+                        const logSettingsCards =
+                            document.getElementById("logSettingsCards");
 
-                // Fetch channels
-                fetch('/api/guild')
-                  .then(response => response.json())
-                  .then(data => {
-                    guildData = data.guildData;
-                    const textChannels = guildData.channels.filter(channel => channel.type === 0);
+                        // Fetch channels
+                        fetch("/api/guild")
+                            .then((response) => response.json())
+                            .then((data) => {
+                                guildData = data.guildData;
+                                const textChannels = guildData.channels.filter(
+                                    (channel) => channel.type === 0,
+                                );
 
-                    // Render log settings cards
-                    Object.entries(settingsFetch.logSettings).forEach(([key, value]) => {
-                      const card = document.createElement('div');
-                      card.innerHTML = `
+                                // Render log settings cards
+                                Object.entries(
+                                    settingsFetch.logSettings,
+                                ).forEach(([key, value]) => {
+                                    const card = document.createElement("div");
+                                    card.innerHTML = `
                         <div class="uk-card uk-card-default uk-card-body">
                           <div class="uk-grid-small uk-flex-middle" uk-grid>
                             <div class="uk-width-expand">
-                              <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, '$1 $2')}</h3>
+                              <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2")}</h3>
                             </div>
                             <div class="uk-width-auto">
                               <label class="uk-switch">
-                                <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? 'checked' : ''}>
+                                <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? "checked" : ""}>
                                 <span class="uk-switch-slider"></span>
                               </label>
                             </div>
@@ -1154,59 +1718,72 @@
                             <input type="hidden" id="logSetting" value="${key}">
                             <select class="uk-select log-setting-channel-id" id="${key}ChannelId">
                               <option value="">No channel</option>
-                              ${textChannels.map(channel => `<option value="${channel.id}" ${channel.id === value.channelId ? 'selected' : ''}>#${channel.name} - (${channel.id})</option>`).join('')}
+                              ${textChannels.map((channel) => `<option value="${channel.id}" ${channel.id === value.channelId ? "selected" : ""}>#${channel.name} - (${channel.id})</option>`).join("")}
                             </select>
                           </div>
                         </div>
                       `;
-                      logSettingsCards.appendChild(card);
+                                    logSettingsCards.appendChild(card);
+                                });
+                            })
+                            .catch((error) =>
+                                console.error(
+                                    "Error fetching guild data:",
+                                    error,
+                                ),
+                            );
+                    })
+                    .catch((error) =>
+                        console.error("Error fetching settings:", error),
+                    );
+
+                // Save log settings
+                const saveLogSettingsButton =
+                    document.getElementById("saveLogSettings");
+                saveLogSettingsButton.addEventListener("click", () => {
+                    const logSettingCheckboxes = document.querySelectorAll(
+                        ".log-setting-checkbox",
+                    );
+                    const logSettingChannelIds = document.querySelectorAll(
+                        ".log-setting-channel-id",
+                    );
+                    const logSettingKeys =
+                        document.querySelectorAll("#logSetting");
+
+                    const updatedSettings = {};
+
+                    logSettingCheckboxes.forEach((checkbox, index) => {
+                        const key = logSettingKeys[index].value;
+                        const channelId = logSettingChannelIds[index].value;
+                        updatedSettings[key] = {
+                            enabled: checkbox.checked,
+                            channelId,
+                        };
                     });
-                  })
-                  .catch(error => console.error('Error fetching guild data:', error));
-              })
-              .catch(error => console.error('Error fetching settings:', error));
 
-            // Save log settings
-            const saveLogSettingsButton = document.getElementById('saveLogSettings');
-            saveLogSettingsButton.addEventListener('click', () => {
-              const logSettingCheckboxes = document.querySelectorAll('.log-setting-checkbox');
-              const logSettingChannelIds = document.querySelectorAll('.log-setting-channel-id');
-              const logSettingKeys = document.querySelectorAll('#logSetting');
+                    settingsFetch.logSettings = updatedSettings;
 
-              const updatedSettings = {};
-
-              logSettingCheckboxes.forEach((checkbox, index) => {
-                const key = logSettingKeys[index].value;
-                const channelId = logSettingChannelIds[index].value;
-                updatedSettings[key] = {
-                  enabled: checkbox.checked,
-                  channelId
-                };
-              });
-
-              settingsFetch.logSettings = updatedSettings;
-
-              fetch('/api/settings', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(settingsFetch)
-              })
-                .then(response => response.json())
-                .then(data => {
-                  UIkit.notification({
-                    message: `<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Successfully updated settings.</div>`
-                  });
-                })
-                .catch(error => {
-                  console.error('Error saving settings:', error);
-                  UIkit.notification({
-                    message: "There was an error!"
-                  });
+                    fetch("/api/settings", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(settingsFetch),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            UIkit.notification({
+                                message: `<div class='uk-flex uk-flex-middle'><span class='uk-flex-none uk-margin-small-right' uk-icon='icon: check; ratio: 0.8'></span> Successfully updated settings.</div>`,
+                            });
+                        })
+                        .catch((error) => {
+                            console.error("Error saving settings:", error);
+                            UIkit.notification({
+                                message: "There was an error!",
+                            });
+                        });
                 });
-            });
-          </script>
+            </script>
         </div>
 
         <div id="colors" class="page uk-background-secondary">
