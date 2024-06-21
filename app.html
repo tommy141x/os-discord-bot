@@ -993,6 +993,14 @@
                 class="uk-card uk-card-default uk-card-body"
             >
                 <div class="uk-margin">
+                    <label class="uk-form-label" for="existingEmbeds"
+                        >Select Embed to Update:</label
+                    >
+                    <select class="uk-select" id="existingEmbeds">
+                        <option value="">Select Embed</option>
+                    </select>
+                </div>
+                <div class="uk-margin">
                     <label class="uk-form-label" for="channelID"
                         >Channel:</label
                     >
@@ -1002,36 +1010,94 @@
                 </div>
 
                 <div class="uk-margin">
-                    <label class="uk-form-label" for="embedTitle"
-                        >Embed Title:</label
-                    >
+                    <label class="uk-form-label" for="embedColor">Color:</label>
+                    <input type="text" id="embedColor" data-coloris />
+                </div>
+
+                <div
+                    style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                    "
+                >
+                    <div style="height: 3rem; width: 3rem">
+                        <input
+                            type="file"
+                            class="filepond"
+                            name="authorIcon"
+                            accept="image/*"
+                        />
+                    </div>
+
+                    <div style="margin-left: 1rem">
+                        <input
+                            class="uk-input"
+                            type="text"
+                            id="authorName"
+                            name="authorName"
+                            placeholder="Name"
+                        />
+                    </div>
+
+                    <div style="height: 6rem; width: 6rem; margin-left: auto">
+                        <input
+                            type="file"
+                            class="filepond"
+                            name="thumbnail"
+                            accept="image/*"
+                        />
+                    </div>
+                </div>
+
+                <div class="uk-margin">
                     <input
                         class="uk-input"
                         type="text"
                         id="embedTitle"
                         name="embedTitle"
-                        placeholder="Enter embed title"
+                        placeholder="Title"
                     />
                 </div>
 
                 <div class="uk-margin">
-                    <label class="uk-form-label" for="embedColor"
-                        >Embed Color:</label
-                    >
-                    <input type="text" id="embedColor" data-coloris />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="embedDescription"
-                        >Embed Description:</label
-                    >
                     <textarea
                         class="uk-textarea"
                         id="embedDescription"
                         name="embedDescription"
                         rows="3"
-                        placeholder="Enter embed description"
+                        placeholder="Description"
                     ></textarea>
+                </div>
+
+                <div class="uk-margin">
+                    <div id="embedFieldsContainer"></div>
+                    <button
+                        type="button"
+                        class="uk-button uk-button-default"
+                        id="addFieldButton"
+                    >
+                        Add Field
+                    </button>
+                </div>
+
+                <div class="uk-margin" style="height: 15rem">
+                    <input
+                        type="file"
+                        class="filepond"
+                        name="mainImage"
+                        accept="image/*"
+                    />
+                </div>
+
+                <div class="uk-margin">
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="embedFooter"
+                        name="embedFooter"
+                        placeholder="Footer"
+                    />
                 </div>
 
                 <div class="uk-margin">
@@ -1044,89 +1110,6 @@
                         />
                         Timestamp
                     </label>
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="authorName"
-                        >Author Name:</label
-                    >
-                    <input
-                        class="uk-input"
-                        type="text"
-                        id="authorName"
-                        name="authorName"
-                        placeholder="Enter embed author"
-                    />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="authorIconUpload"
-                        >Author Icon:</label
-                    >
-                    <input
-                        type="file"
-                        class="filepond"
-                        name="authorIcon"
-                        accept="image/*"
-                    />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="thumbnailUpload"
-                        >Thumbnail Image:</label
-                    >
-                    <input
-                        type="file"
-                        class="filepond"
-                        name="thumbnail"
-                        accept="image/*"
-                    />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="mainImageUpload"
-                        >Main Image:</label
-                    >
-                    <input
-                        type="file"
-                        class="filepond"
-                        name="mainImage"
-                        accept="image/*"
-                    />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label">Embed Fields:</label>
-                    <div id="embedFieldsContainer"></div>
-                    <button
-                        type="button"
-                        class="uk-button uk-button-default"
-                        id="addFieldButton"
-                    >
-                        Add Field
-                    </button>
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="embedFooter"
-                        >Embed Footer:</label
-                    >
-                    <input
-                        class="uk-input"
-                        type="text"
-                        id="embedFooter"
-                        name="embedFooter"
-                        placeholder="Enter embed footer"
-                    />
-                </div>
-
-                <div class="uk-margin">
-                    <label class="uk-form-label" for="existingEmbeds"
-                        >Select Embed to Update:</label
-                    >
-                    <select class="uk-select" id="existingEmbeds">
-                        <option value="">Select Embed</option>
-                    </select>
                 </div>
 
                 <input type="hidden" id="messageID" name="messageID" />
@@ -1152,16 +1135,55 @@
 
             <style>
                 .filepond--root {
-                    height: 10em;
-                    width: 15em;
+                    height: 100%;
+                    width: 100%;
+                    margin: 0 !important;
+                }
+
+                .filepond--list-scroller {
+                    margin: 0 !important;
+                    height: 100% !important;
+                    width: 100% !important;
+                }
+
+                .filepond--list {
+                    position: relative !important;
+                    left: 0 !important;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                .filepond--item {
+                    width: 100% !important;
+                    height: 100% !important;
+                    position: relative;
                 }
 
                 .filepond--panel-root {
-                    background-color: var(--background);
+                    background-color: transparent;
+                    border: 2px solid #2c3340;
+                    position: relative;
                 }
 
-                .filepond--file-action-button {
-                    cursor: pointer;
+                .filepond--drop-label {
+                    display: none;
+                }
+
+                .filepond--root:hover .filepond--panel-root {
+                    border-color: #4a90e2; /* Change to your desired hover color */
+                    background-color: rgba(74, 144, 226, 0.1);
+                }
+
+                .filepond--credits {
+                    display: none;
+                }
+
+                #embedColor {
+                    background-color: var(--background);
+                    border-width: 0.1rem;
+                    border-style: solid;
+                    border-color: #828282;
+                    border-radius: 0.5rem;
                 }
             </style>
             <script>
@@ -1189,6 +1211,7 @@
                     pond.setOptions({
                         maxFileSize: "5MB",
                         acceptedFileTypes: ["image/*"],
+                        credits: [],
                         server: {
                             process: handleFilePondUpload,
                             revert: handleFilePondRevert,
@@ -1201,10 +1224,32 @@
                             fileUploadsInProgress++;
                             updateSubmitButtonState();
                         },
-                        onremovefile: () => {
+                        onremovefile: (err, data) => {
+                            document
+                                .getElementById("embedSettingsForm")
+                                .removeAttribute(
+                                    `data-${data.file.name.split("-")[0]}-url`,
+                                );
                             fileUploadsInProgress--;
                             updateSubmitButtonState();
                         },
+                    });
+
+                    console.log(pond);
+                    // Create image object
+                    const imageIcon = document.createElement("span");
+                    imageIcon.setAttribute(
+                        "uk-icon",
+                        "icon: image; ratio: 1.5",
+                    );
+                    imageIcon.style.position = "absolute";
+                    imageIcon.style.top = "50%";
+                    imageIcon.style.left = "50%";
+                    imageIcon.style.transform = "translate(-50%, -50%)";
+
+                    pond.element.appendChild(imageIcon);
+                    pond.element.addEventListener("click", () => {
+                        pond.browse();
                     });
                     return pond;
                 };
@@ -1267,7 +1312,7 @@
                     }
                     document
                         .getElementById("embedSettingsForm")
-                        .removeAttribute(`data-${fileName}-url`);
+                        .removeAttribute(`data-${fileName.split("-")[0]}-url`);
                     fetch(`/api/media/${fileName}`, { method: "DELETE" })
                         .then((response) => response.json())
                         .then((result) => {
@@ -1349,7 +1394,14 @@
                 const updateSubmitButtonState = () => {
                     const submitButton =
                         document.getElementById("submitButton");
-                    submitButton.disabled = fileUploadsInProgress > 0;
+                    let shouldDisable = fileUploadsInProgress > 0;
+                    if (shouldDisable) {
+                        submitButton.disabled = true;
+                    } else {
+                        setTimeout(() => {
+                            submitButton.disabled = false;
+                        }, 2500);
+                    }
                 };
 
                 const handleEmbedSelection = (event, embeds) => {
@@ -1366,11 +1418,6 @@
                                 "submitButton",
                             ).textContent = "Update Embed";
                             deleteButton.style.display = "inline-block";
-                        } else {
-                            UIkit.notification({
-                                message: "Failed to find the selected embed",
-                                status: "danger",
-                            });
                         }
                     } else {
                         clearForm();
@@ -1455,9 +1502,9 @@
                     const fieldContainer = document.createElement("div");
                     fieldContainer.classList.add("embed-field");
                     fieldContainer.innerHTML = `
-                        <input class="uk-input embed-field-name" type="text" placeholder="Field Name" value="${name}" />
-                        <input class="uk-input embed-field-value" type="text" placeholder="Field Value" value="${value}" />
-                        <button type="button" class="uk-button uk-button-danger remove-field-button">Remove</button>
+                        <input class="uk-input embed-field-name" type="text" placeholder="Field Title" value="${name}" />
+                        <input class="uk-input uk-margin embed-field-value" type="text" placeholder="Field Value" value="${value}" />
+                        <button type="button" class="uk-button uk-margin uk-button-danger remove-field-button">Remove</button>
                         <label>
                             <input type="checkbox" class="uk-checkbox embed-field-inline" ${inline ? "checked" : ""} /> Inline
                         </label>
@@ -1615,6 +1662,7 @@
                 // Initialize Coloris color picker
                 const initializeColorPicker = () => {
                     Coloris({
+                        theme: "polaroid",
                         themeMode: localStorage.getItem("color-theme"),
                         alpha: false,
                         format: "rgb",
