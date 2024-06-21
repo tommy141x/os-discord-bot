@@ -204,8 +204,24 @@ passport.use(
       callbackURL: config.publicURL + "/login/callback",
       scope: ["identify"],
     },
-    (accessToken, refreshToken, profile, done) => {
-      process.nextTick(() => done(null, profile));
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Fetch guild member to check for admin role
+        const guild = await client.guilds.fetch(config.guildID);
+        const member = await guild.members.fetch(profile.id);
+
+        if (member && member.permissions.has("ADMINISTRATOR")) {
+          // User is an admin
+          return done(null, profile);
+        } else {
+          // User is not an admin
+          return done(null, false, {
+            message: "You are not an admin in the specified guild.",
+          });
+        }
+      } catch (error) {
+        return done(error);
+      }
     },
   ),
 );
