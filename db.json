@@ -94,16 +94,18 @@
       "pingCommand": true,
       "userCommand": true,
       "serverCommand": true,
-      "pointsCommand": true,
+      "pointsCommand": false,
       "leaderboardCommand": true,
       "customCommands": []
     },
     "moderationSettings": {
-      "modRoles": [],
+      "modRoles": [
+        "1122766526458630215"
+      ],
       "setNickCommand": true,
-      "kickCommand": true,
-      "banCommand": true,
-      "unbanCommand": true,
+      "kickCommand": false,
+      "banCommand": false,
+      "unbanCommand": false,
       "muteCommand": true,
       "unmuteCommand": true,
       "timeoutCommand": true,
@@ -169,6 +171,167 @@
       "timestamp": "2024-06-22T06:38:23.985Z",
       "totalMembers": 760,
       "onlineMembers": 101
+    },
+    {
+      "timestamp": "2024-06-22T20:19:47.498Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T20:20:15.141Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T20:20:25.840Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T20:20:31.026Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T20:21:46.353Z",
+      "totalMembers": 762,
+      "onlineMembers": 164
+    },
+    {
+      "timestamp": "2024-06-22T20:22:01.339Z",
+      "totalMembers": 762,
+      "onlineMembers": 164
+    },
+    {
+      "timestamp": "2024-06-22T20:22:11.117Z",
+      "totalMembers": 762,
+      "onlineMembers": 164
+    },
+    {
+      "timestamp": "2024-06-22T20:44:28.827Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T20:44:51.225Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T21:03:30.724Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T21:04:20.575Z",
+      "totalMembers": 762,
+      "onlineMembers": 166
+    },
+    {
+      "timestamp": "2024-06-22T21:06:17.749Z",
+      "totalMembers": 762,
+      "onlineMembers": 163
+    },
+    {
+      "timestamp": "2024-06-22T21:08:21.761Z",
+      "totalMembers": 762,
+      "onlineMembers": 164
+    },
+    {
+      "timestamp": "2024-06-22T21:10:01.079Z",
+      "totalMembers": 762,
+      "onlineMembers": 166
+    },
+    {
+      "timestamp": "2024-06-22T21:10:24.912Z",
+      "totalMembers": 762,
+      "onlineMembers": 166
+    },
+    {
+      "timestamp": "2024-06-22T21:19:18.087Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:19:45.175Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:20:04.989Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:21:46.992Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:21:53.314Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:22:13.688Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:24:35.135Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:25:18.549Z",
+      "totalMembers": 762,
+      "onlineMembers": 167
+    },
+    {
+      "timestamp": "2024-06-22T21:34:24.207Z",
+      "totalMembers": 762,
+      "onlineMembers": 169
+    },
+    {
+      "timestamp": "2024-06-22T21:35:32.236Z",
+      "totalMembers": 762,
+      "onlineMembers": 174
+    },
+    {
+      "timestamp": "2024-06-22T21:36:57.597Z",
+      "totalMembers": 762,
+      "onlineMembers": 174
+    },
+    {
+      "timestamp": "2024-06-22T21:37:20.473Z",
+      "totalMembers": 762,
+      "onlineMembers": 174
+    },
+    {
+      "timestamp": "2024-06-22T21:37:37.750Z",
+      "totalMembers": 762,
+      "onlineMembers": 174
+    }
+  ],
+  "logs": [
+    {
+      "message": "<@603816963923509249> **sent a message in** <#1122933279667015690>:\nI just want to say how impressive this game looks. Super excited to support this project!",
+      "timestamp": "2024-06-22T20:56:13.180Z",
+      "type": "new-message"
+    },
+    {
+      "message": "<@600063289782698004> **sent a message in** <#1122772037526626364>:\nw",
+      "timestamp": "2024-06-22T21:16:38.834Z",
+      "type": "new-message"
+    }
+  ],
+  "controlLogs": [
+    {
+      "message": "updated command settings",
+      "timestamp": "2024-06-22T21:37:26.023Z",
+      "user": "tommy141x",
+      "id": "600063289782698004",
+      "email": "t.johnston141x@gmail.com"
     }
   ]
 }

@@ -1,18 +1,17 @@
-const config = require("./config.json");
+const config = require("../config.json");
 const db = require("./db.js");
 
 class Logger {
   constructor(client, settings) {
     this.settings = settings;
     this.client = client;
-    console.log("Initalized Logger and set client to: ", this.client);
+    console.log("Initalized Logger");
     this.registerEventListeners();
     this.collectStats();
-    this.interval = setInterval(this.collectStats, 60000 * 30);
+    this.interval = setInterval(this.collectStats.bind(this), 60000 * 30);
   }
 
   async collectStats() {
-    console.log("Collecting stats, this.client is: ", this.client);
     const guild = await this.client.guilds.fetch(config.guildID);
     const guildPreview = await guild.fetch();
     let totalMembers = guild.memberCount;
@@ -23,6 +22,17 @@ class Logger {
       onlineMembers,
     };
     db.set("stats", [...(db.get("stats") || []), currentStats]);
+  }
+
+  logControlEvent(message, user) {
+    const log = {
+      message: message,
+      timestamp: new Date().toISOString(),
+      user: user.username,
+      id: user.id,
+      email: user.email,
+    };
+    db.set("controlLogs", [...(db.get("controlLogs") || []), log]);
   }
 
   logEvent(message, type, channelId, member) {

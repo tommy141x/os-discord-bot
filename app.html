@@ -177,17 +177,6 @@
                 </button>
                 <button
                     class="uk-width-1-1 uk-button uk-button-default"
-                    onclick="showDiv('leveling-system')"
-                    style="justify-content: left"
-                >
-                    <span
-                        style="margin-right: 0.5rem"
-                        uk-icon="icon: refresh; ratio: 0.8"
-                    ></span>
-                    Leveling System
-                </button>
-                <button
-                    class="uk-width-1-1 uk-button uk-button-default"
                     onclick="showDiv('auto-roles')"
                     style="justify-content: left"
                 >
@@ -207,17 +196,6 @@
                         uk-icon="icon: database; ratio: 0.8"
                     ></span>
                     Logs
-                </button>
-                <button
-                    class="uk-width-1-1 uk-button uk-button-default"
-                    onclick="showDiv('colors')"
-                    style="justify-content: left"
-                >
-                    <span
-                        style="margin-right: 0.5rem"
-                        uk-icon="icon: lifesaver; ratio: 0.8"
-                    ></span>
-                    Colors
                 </button>
                 <button
                     class="uk-width-1-1 uk-button uk-button-default"
@@ -1697,36 +1675,41 @@
             <div
                 id="utilityCards"
                 class="uk-margin"
-                style="display: flex; flex-wrap: wrap"
-            >
-                <!-- Cards will be dynamically inserted here -->
-            </div>
+                style="
+                    display: grid;
+                    grid-template-columns: repeat(
+                        auto-fill,
+                        minmax(calc(33.333% - 1rem), 1fr)
+                    );
+                    gap: 1rem;
+                "
+            ></div>
 
-            <h2 class="uk-h2 text-foreground" style="margin: 1rem">
+            <h2 class="uk-h2 text-foreground" style="margin: 0.5rem">
                 Custom Commands
             </h2>
-            <div id="customCommandsContainer">
-                <!-- Custom commands will be listed here -->
-            </div>
+            <div id="customCommandsContainer"></div>
+
+            <button
+                id="saveSettings"
+                class="uk-button uk-button-primary uk-margin"
+                style="margin: 0.5rem"
+            >
+                Save Settings
+            </button>
             <button
                 id="addCustomCommand"
                 class="uk-button uk-button-primary uk-margin"
             >
                 Add Custom Command
             </button>
-
-            <button
-                id="saveSettings"
-                style="margin: 0.5rem"
-                class="uk-button uk-button-primary uk-margin uk-margin-top"
-            >
-                Save Settings
-            </button>
         </div>
 
         <div id="customCommandModal" uk-modal>
             <div class="uk-modal-dialog uk-modal-body">
-                <h2 class="uk-modal-title">Custom Command</h2>
+                <h2 class="uk-modal-title text-foreground uk-margin-bottom">
+                    Custom Command
+                </h2>
                 <form id="customCommandForm">
                     <input
                         class="uk-input uk-margin"
@@ -1775,67 +1758,70 @@
 
         <script>
             document.addEventListener("DOMContentLoaded", () => {
-                const utilityCards = document.getElementById("utilityCards");
-                const customCommandsContainer = document.getElementById(
-                    "customCommandsContainer",
-                );
-                const saveButton = document.getElementById("saveSettings");
-                const addCustomCommandButton =
-                    document.getElementById("addCustomCommand");
-                const customCommandForm =
-                    document.getElementById("customCommandForm");
-                const embedsContainer =
-                    document.getElementById("embedsContainer");
-                const addEmbedButton = document.getElementById("addEmbed");
-                let settings;
+                const elements = {
+                    utilityCards: document.getElementById("utilityCards"),
+                    customCommandsContainer: document.getElementById(
+                        "customCommandsContainer",
+                    ),
+                    saveButton: document.getElementById("saveSettings"),
+                    addCustomCommandButton:
+                        document.getElementById("addCustomCommand"),
+                    customCommandForm:
+                        document.getElementById("customCommandForm"),
+                    embedsContainer: document.getElementById("embedsContainer"),
+                    addEmbedButton: document.getElementById("addEmbed"),
+                };
 
-                // Fetch current settings
-                fetch("/api/settings")
-                    .then((response) => response.json())
-                    .then((data) => {
-                        settings = data;
+                let settings;
+                let editingIndex = -1;
+
+                const fetchSettings = async () => {
+                    try {
+                        const response = await fetch("/api/settings");
+                        settings = await response.json();
                         renderCards();
                         renderCustomCommands();
-                    })
-                    .catch((error) => {
+                    } catch (error) {
                         console.error("Error fetching settings:", error);
                         UIkit.notification({
                             message: "Failed to load settings",
                             status: "danger",
                         });
-                    });
-
-                function renderCards() {
-                    const utilitySettings = settings.utilitySettings;
-                    for (const [key, value] of Object.entries(
-                        utilitySettings,
-                    )) {
-                        if (typeof value === "boolean") {
-                            const card = createCard(key, value);
-                            utilityCards.appendChild(card);
-                        }
                     }
-                }
+                };
 
-                function createCard(commandName, isEnabled) {
+                const renderCards = () => {
+                    elements.utilityCards.innerHTML = "";
+                    Object.entries(settings.utilitySettings).forEach(
+                        ([key, value]) => {
+                            if (typeof value === "boolean") {
+                                const card = createCard(key, value);
+                                elements.utilityCards.appendChild(card);
+                            }
+                        },
+                    );
+                };
+
+                const createCard = (commandName, isEnabled) => {
                     const card = document.createElement("div");
-                    card.className = "uk-card uk-card-default uk-card-body";
-                    card.style = "margin: 0.5rem; height: 8rem; width: 15rem;";
+                    card.className =
+                        "uk-card uk-card-default uk-card-body utility-card";
+                    // No need to set inline styles here, as the grid will handle the layout
                     card.innerHTML = `
-                                   <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
-                                       <h3>/${commandName.replace("Command", "")}</h3>
-                                       <label>
-                                           <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
-                                           ${isEnabled ? "Enabled" : "Disabled"}
-                                       </label>
-                                   </div>
-                                   <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
-                               `;
+                        <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
+                            <h3>/${commandName.replace("Command", "")}</h3>
+                            <label>
+                                <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
+                                ${isEnabled ? "Enabled" : "Disabled"}
+                            </label>
+                        </div>
+                        <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
+                    `;
                     return card;
-                }
+                };
 
-                function renderCustomCommands() {
-                    customCommandsContainer.innerHTML = "";
+                const renderCustomCommands = () => {
+                    elements.customCommandsContainer.innerHTML = "";
                     settings.utilitySettings.customCommands.forEach(
                         (command, index) => {
                             const commandElement =
@@ -1848,75 +1834,74 @@
                         <button class="uk-button uk-button-primary uk-margin-small-right" onclick="editCustomCommand(${index})">Edit</button>
                         <button class="uk-button uk-button-danger" onclick="deleteCustomCommand(${index})">Delete</button>
                     `;
-                            customCommandsContainer.appendChild(commandElement);
+                            elements.customCommandsContainer.appendChild(
+                                commandElement,
+                            );
                         },
                     );
-                }
+                };
 
-                let editingIndex = -1;
-
-                function addEmbed(color = "") {
+                const addEmbed = () => {
                     const embedDiv = document.createElement("div");
                     embedDiv.className = "uk-margin";
                     embedDiv.innerHTML = `
-                           <input class="uk-input uk-margin-small" type="text" placeholder="Embed Color" name="embedColor[]" data-coloris value="${color}"
-                                  style="background-color: var(--background); border-width: 0.1rem; border-style: solid; border-color: #828282; border-radius: 0.5rem;">
-                           <input class="uk-input uk-margin-small" type="text" placeholder="Embed Title" name="embedTitle[]">
-                           <textarea class="uk-textarea uk-margin-small" placeholder="Embed Description" name="embedDescription[]"></textarea>
-                           <button type="button" class="uk-button uk-button-danger uk-margin-small" onclick="this.parentElement.remove()">Remove Embed</button>
-                       `;
-                    embedsContainer.appendChild(embedDiv);
-                }
+                    <input class="uk-input uk-margin-small" type="text" placeholder="Embed Title" name="embedTitle[]">
+                    <textarea class="uk-textarea uk-margin-small" placeholder="Embed Description" name="embedDescription[]"></textarea>
+                    <button type="button" class="uk-button uk-button-danger uk-margin-small" onclick="this.parentElement.remove()">Remove Embed</button>
+                `;
+                    elements.embedsContainer.appendChild(embedDiv);
+                };
 
-                function rgbToInt(rgbString) {
-                    const cleanedString = rgbString
-                        .replace("rgb(", "")
-                        .replace(")", "");
-                    const [r, g, b] = cleanedString.split(",");
-                    return (
-                        (parseInt(r) << 16) | (parseInt(g) << 8) | parseInt(b)
+                const saveSettings = async () => {
+                    const checkboxes = document.querySelectorAll(
+                        '#utilityCards input[type="checkbox"]',
                     );
-                }
+                    checkboxes.forEach((checkbox) => {
+                        const commandName = checkbox.dataset.command;
+                        settings.utilitySettings[commandName] =
+                            checkbox.checked;
+                    });
 
-                function intToRgb(colorInt) {
-                    const r = (colorInt >> 16) & 255;
-                    const g = (colorInt >> 8) & 255;
-                    const b = colorInt & 255;
-                    return `rgb(${r}, ${g}, ${b})`;
-                }
+                    try {
+                        const response = await fetch("/api/settings", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(settings),
+                        });
+                        await response.json();
+                        UIkit.notification({
+                            message: "Settings saved successfully",
+                            status: "success",
+                        });
+                    } catch (error) {
+                        console.error("Error saving settings:", error);
+                        UIkit.notification({
+                            message: "Failed to save settings",
+                            status: "danger",
+                        });
+                    }
+                };
 
-                addEmbedButton.addEventListener("click", addEmbed);
-
-                addCustomCommandButton.addEventListener("click", () => {
-                    editingIndex = -1;
-                    customCommandForm.reset();
-                    embedsContainer.innerHTML = "";
-                    UIkit.modal("#customCommandModal").show();
-                });
-
-                customCommandForm.addEventListener("submit", (e) => {
+                const handleCustomCommandSubmit = (e) => {
                     e.preventDefault();
-                    const name = document.getElementById("commandName").value;
-                    const description =
-                        document.getElementById("commandDescription").value;
-                    const messages = document
-                        .getElementById("commandMessages")
-                        .value.split("\n")
-                        .filter((msg) => msg.trim() !== "");
-
-                    const embeds = Array.from(
-                        document.querySelectorAll("#embedsContainer > div"),
-                    ).map((div) => ({
-                        color: rgbToInt(
-                            div.querySelector('[name="embedColor[]"]').value,
-                        ),
-                        title: div.querySelector('[name="embedTitle[]"]').value,
-                        description: div.querySelector(
-                            '[name="embedDescription[]"]',
-                        ).value,
-                    }));
-
-                    const newCommand = { name, description, messages, embeds };
+                    const newCommand = {
+                        name: document.getElementById("commandName").value,
+                        description:
+                            document.getElementById("commandDescription").value,
+                        messages: document
+                            .getElementById("commandMessages")
+                            .value.split("\n")
+                            .filter((msg) => msg.trim() !== ""),
+                        embeds: Array.from(
+                            document.querySelectorAll("#embedsContainer > div"),
+                        ).map((div) => ({
+                            title: div.querySelector('[name="embedTitle[]"]')
+                                .value,
+                            description: div.querySelector(
+                                '[name="embedDescription[]"]',
+                            ).value,
+                        })),
+                    };
 
                     if (editingIndex === -1) {
                         settings.utilitySettings.customCommands.push(
@@ -1929,14 +1914,8 @@
 
                     renderCustomCommands();
                     UIkit.modal("#customCommandModal").hide();
-                    UIkit.notification({
-                        message:
-                            editingIndex === -1
-                                ? "Custom command added successfully"
-                                : "Custom command updated successfully",
-                        status: "success",
-                    });
-                });
+                    saveSettings();
+                };
 
                 window.editCustomCommand = (index) => {
                     editingIndex = index;
@@ -1948,10 +1927,11 @@
                     document.getElementById("commandMessages").value =
                         command.messages.join("\n");
 
-                    embedsContainer.innerHTML = "";
+                    elements.embedsContainer.innerHTML = "";
                     command.embeds.forEach((embed) => {
-                        addEmbed(intToRgb(embed.color));
-                        const lastEmbed = embedsContainer.lastElementChild;
+                        addEmbed();
+                        const lastEmbed =
+                            elements.embedsContainer.lastElementChild;
                         lastEmbed.querySelector('[name="embedTitle[]"]').value =
                             embed.title;
                         lastEmbed.querySelector(
@@ -1962,77 +1942,33 @@
                     UIkit.modal("#customCommandModal").show();
                 };
 
-                saveButton.addEventListener("click", () => {
-                    const checkboxes = document.querySelectorAll(
-                        '#utilityCards input[type="checkbox"]',
-                    );
-                    checkboxes.forEach((checkbox) => {
-                        const commandName = checkbox.dataset.command;
-                        settings.utilitySettings[commandName] =
-                            checkbox.checked;
-                    });
-
-                    fetch("/api/settings", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(settings),
-                    })
-                        .then((response) => response.json())
-                        .then((data) => {
-                            UIkit.notification({
-                                message: "Settings saved successfully",
-                                status: "success",
-                            });
-                        })
-                        .catch((error) => {
-                            console.error("Error saving settings:", error);
-                            UIkit.notification({
-                                message: "Failed to save settings",
-                                status: "danger",
-                            });
-                        });
-                });
-
-                customCommandForm.onsubmit = (e) => {
-                    e.preventDefault();
-                    settings.utilitySettings.customCommands[editingIndex] = {
-                        name: document.getElementById("commandName").value,
-                        description:
-                            document.getElementById("commandDescription").value,
-                        messages: document
-                            .getElementById("commandMessages")
-                            .value.split("\n")
-                            .filter((msg) => msg.trim() !== ""),
-                        embeds: Array.from(
-                            document.querySelectorAll("#embedsContainer > div"),
-                        ).map((div) => ({
-                            color: div.querySelector('[name="embedColor[]"]')
-                                .value,
-                            title: div.querySelector('[name="embedTitle[]"]')
-                                .value,
-                            description: div.querySelector(
-                                '[name="embedDescription[]"]',
-                            ).value,
-                        })),
-                    };
-                    renderCustomCommands();
-                    UIkit.modal("#customCommandModal").hide();
-                    UIkit.notification({
-                        message: "Custom command updated successfully",
-                        status: "success",
-                    });
-                };
-
                 window.deleteCustomCommand = (index) => {
                     settings.utilitySettings.customCommands.splice(index, 1);
                     renderCustomCommands();
-                    UIkit.notification({
-                        message: "Custom command deleted successfully",
-                        status: "success",
-                    });
+                    saveSettings();
                 };
+
+                // Event Listeners
+                elements.addEmbedButton.addEventListener("click", () =>
+                    addEmbed(),
+                );
+                elements.addCustomCommandButton.addEventListener(
+                    "click",
+                    () => {
+                        editingIndex = -1;
+                        elements.customCommandForm.reset();
+                        elements.embedsContainer.innerHTML = "";
+                        UIkit.modal("#customCommandModal").show();
+                    },
+                );
+                elements.customCommandForm.addEventListener(
+                    "submit",
+                    handleCustomCommandSubmit,
+                );
+                elements.saveButton.addEventListener("click", saveSettings);
+
+                // Initialize
+                fetchSettings();
             });
         </script>
 
@@ -2041,11 +1977,11 @@
                 Moderation Settings
             </h1>
 
-            <div class="uk-margin-bottom">
+            <div class="uk-card uk-card-default uk-card-body">
                 <label class="uk-form-label" for="modRoleInput">
                     Moderator Roles
                 </label>
-                <div class="uk-flex uk-flex-middle">
+                <div class="uk-flex uk-flex-middle uk-margin-top">
                     <input
                         id="modRoleInput"
                         class="uk-input uk-width-1-2@m"
@@ -2065,7 +2001,14 @@
             <div
                 id="moderationCards"
                 class="uk-margin"
-                style="display: flex; flex-wrap: wrap"
+                style="
+                    display: grid;
+                    grid-template-columns: repeat(
+                        auto-fill,
+                        minmax(calc(33.333% - 1rem), 1fr)
+                    );
+                    gap: 1rem;
+                "
             >
                 <!-- Cards will be dynamically inserted here -->
             </div>
@@ -2147,17 +2090,17 @@
                 function createCard(commandName, isEnabled) {
                     const card = document.createElement("div");
                     card.className = "uk-card uk-card-default uk-card-body";
-                    card.style = "margin: 0.5rem; height: 8rem; width: 15rem;";
+                    card.style = "height: 8rem;"; // Remove the width and margin
                     card.innerHTML = `
-                    <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
-                        <h3>/${commandName.replace("Command", "")}</h3>
-                        <label>
-                            <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
-                            ${isEnabled ? "Enabled" : "Disabled"}
-                        </label>
-                    </div>
-                    <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
-                `;
+                        <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
+                            <h3>/${commandName.replace("Command", "")}</h3>
+                            <label>
+                                <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
+                                ${isEnabled ? "Enabled" : "Disabled"}
+                            </label>
+                        </div>
+                        <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
+                    `;
                     return card;
                 }
 
@@ -2216,9 +2159,6 @@
         </div>
         <div id="auto-responder" class="page uk-background-secondary">
             <!-- auto responder page -->
-        </div>
-        <div id="leveling-system" class="page uk-background-secondary">
-            <!-- leveling system page -->
         </div>
         <div id="auto-roles" class="page uk-background-secondary">
             <!-- auto roles page -->
@@ -2352,9 +2292,6 @@
             </script>
         </div>
 
-        <div id="colors" class="page uk-background-secondary">
-            <!-- colors page -->
-        </div>
         <div id="self-assignable-roles" class="page uk-background-secondary">
             <!-- self assignable roles page -->
         </div>
@@ -2371,7 +2308,101 @@
             <!-- social alerts page -->
         </div>
         <div id="control-panel-logs" class="page uk-background-secondary">
-            <!-- control panel logs page -->
+            <div class="uk-container uk-margin-top">
+                <div class="guild-info">
+                    <img
+                        id="guild-icon"
+                        src=""
+                        alt="Guild Icon"
+                        class="uk-border-circle"
+                        width="64"
+                        height="64"
+                    />
+                    <h2 id="guild-name" class="uk-h1 text-foreground"></h2>
+                </div>
+                <table class="uk-table uk-table-hover">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th class="uk-text-right">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body">
+                        <!-- Logs will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            <script>
+                function loadControlPanelLogs() {
+                    fetch("/api/guild")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            // Set guild icon and name
+                            document.getElementById("guild-icon").src =
+                                data.guildData.icon;
+                            document.getElementById("guild-name").textContent =
+                                data.guildData.name;
+
+                            // Populate logs table
+                            const tableBody =
+                                document.getElementById("logs-table-body");
+                            tableBody.innerHTML = ""; // Clear existing content
+
+                            data.controlLogs.forEach((log) => {
+                                const row = document.createElement("tr");
+
+                                const actionCell = document.createElement("td");
+                                actionCell.innerHTML = `
+                                <div class="text-foreground" style="font-weight: bold">${log.user} ${log.message}.</div>
+                                <div class="uk-text-muted">${log.email} - (${log.id})</div>
+                            `;
+
+                                const timeCell = document.createElement("td");
+                                timeCell.className =
+                                    "uk-text-right text-foreground";
+                                timeCell.textContent = formatTimestamp(
+                                    log.timestamp,
+                                );
+
+                                row.appendChild(actionCell);
+                                row.appendChild(timeCell);
+                                tableBody.appendChild(row);
+                            });
+                        })
+                        .catch((error) =>
+                            console.error(
+                                "Error loading control panel logs:",
+                                error,
+                            ),
+                        );
+                }
+
+                function formatTimestamp(timestamp) {
+                    const now = new Date();
+                    const logDate = new Date(timestamp);
+                    const diffMs = now - logDate;
+                    const diffSecs = Math.floor(diffMs / 1000);
+                    const diffMins = Math.floor(diffSecs / 60);
+                    const diffHours = Math.floor(diffMins / 60);
+                    const diffDays = Math.floor(diffHours / 24);
+                    const diffMonths = Math.floor(diffDays / 30);
+
+                    if (diffMonths > 0) {
+                        return `${diffMonths} month${diffMonths > 1 ? "s" : ""} ago`;
+                    } else if (diffDays > 0) {
+                        return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+                    } else if (diffHours > 0) {
+                        return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+                    } else if (diffMins > 0) {
+                        return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+                    } else {
+                        return "Just now";
+                    }
+                }
+
+                // Call this function when the control panel logs page is loaded
+                loadControlPanelLogs();
+            </script>
         </div>
         <div id="mod-actions" class="page uk-background-secondary">
             <!-- mod actions page -->
