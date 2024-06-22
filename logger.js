@@ -6,18 +6,22 @@ class Logger {
     this.settings = settings;
     this.client = client;
     this.registerEventListeners();
-    this.interval = setInterval(async () => {
-      const guild = await this.client.guilds.fetch(config.guildID);
-      const guildPreview = await guild.fetch();
-      let totalMembers = guild.memberCount;
-      let onlineMembers = guildPreview.approximatePresenceCount;
-      const currentStats = {
-        timestamp: new Date().toISOString(),
-        totalMembers,
-        onlineMembers,
-      };
-      db.set("stats", [...(db.get("stats") || []), currentStats]);
-    }, 60000 * 30);
+    //call stats right away
+    this.collectStats();
+    this.interval = setInterval(this.collectStats, 60000 * 30);
+  }
+
+  async collectStats() {
+    const guild = await this.client.guilds.fetch(config.guildID);
+    const guildPreview = await guild.fetch();
+    let totalMembers = guild.memberCount;
+    let onlineMembers = guildPreview.approximatePresenceCount;
+    const currentStats = {
+      timestamp: new Date().toISOString(),
+      totalMembers,
+      onlineMembers,
+    };
+    db.set("stats", [...(db.get("stats") || []), currentStats]);
   }
 
   logEvent(message, type, channelId, member) {

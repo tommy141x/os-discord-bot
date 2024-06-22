@@ -51,17 +51,31 @@ app.use(
 // Initialize Discord client
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
+    GatewayIntentBits.AutoModerationConfiguration,
+    GatewayIntentBits.AutoModerationExecution,
+    GatewayIntentBits.DirectMessageReactions,
+    GatewayIntentBits.DirectMessageTyping,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildBans,
+    GatewayIntentBits.GuildEmojisAndStickers,
+    GatewayIntentBits.GuildIntegrations,
+    GatewayIntentBits.GuildInvites,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildMessageTyping,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildScheduledEvents,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildWebhooks,
+    GatewayIntentBits.Guilds,
     GatewayIntentBits.MessageContent,
   ],
 });
 
 let logger;
+let commandHandler;
 new GarbageCollector();
 
 app.use((req, res, next) => {
@@ -166,14 +180,43 @@ client.once("ready", () => {
         channelId: defaultChannelId,
       },
     };
+
+    const utilitySettings = {
+      pingCommand: true,
+      userCommand: true,
+      serverCommand: true,
+      pointsCommand: true,
+      leaderboardCommand: true,
+      customCommands: [],
+    };
+
+    const moderationSettings = {
+      modRoles: [],
+      setNickCommand: true,
+      kickCommand: true,
+      banCommand: true,
+      unbanCommand: true,
+      muteCommand: true,
+      unmuteCommand: true,
+      timeoutCommand: true,
+      untimeoutCommand: true,
+      lockCommand: true,
+      unlockCommand: true,
+      slowmodeCommand: true,
+      clearCommand: true,
+    };
+
     settings = {
       logSettings: logSettings,
+      utilitySettings: utilitySettings,
+      moderationSettings: moderationSettings,
     };
+
     db.set("settings", settings);
   }
   logger = new Logger(client, settings.logSettings);
+  commandHandler = new CommandHandler(client);
 
-  const commandHandler = new CommandHandler(client);
   client.on("interactionCreate", async (interaction) => {
     await commandHandler.handleCommand(interaction);
   });
@@ -533,7 +576,7 @@ app.delete("/api/media/:fileName", ensureAuthenticated, (req, res) => {
 
 app.use("/media", express.static(path.join(__dirname, "public", "media")));
 
-// Example route to get settings
+// Route to get settings
 app.get("/api/settings", ensureAuthenticated, (req, res) => {
   try {
     const settings = db.get("settings") || {}; // Get current settings from the database
@@ -549,6 +592,9 @@ app.post("/api/settings", ensureAuthenticated, async (req, res) => {
     const updatedSettings = req.body; // Entire settings object is expected
     const currentSettings = db.get("settings") || {};
 
+    // Update settings in the database
+    db.set("settings", updatedSettings);
+
     // Check if logSettings have changed
     if (
       JSON.stringify(currentSettings.logSettings) !==
@@ -558,8 +604,15 @@ app.post("/api/settings", ensureAuthenticated, async (req, res) => {
       logger = new Logger(client, updatedSettings.logSettings);
     }
 
-    // Update settings in the database
-    db.set("settings", updatedSettings);
+    if (
+      JSON.stringify(currentSettings.utilitySettings) !==
+        JSON.stringify(updatedSettings.utilitySettings) ||
+      JSON.stringify(currentSettings.moderationSettings) !==
+        JSON.stringify(updatedSettings.moderationSettings)
+    ) {
+      commandHandler = new CommandHandler(client);
+    }
+
     res.json({ message: `Settings updated successfully` });
   } catch (err) {
     console.error("Error setting settings:", err);

@@ -3,682 +3,172 @@
     "logSettings": {
       "logMemberBans": {
         "enabled": true,
-        "channelId": "1122772037526626364"
+        "channelId": ""
       },
       "logMemberUnbans": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logMemberLeaves": {
         "enabled": true,
-        "channelId": "1122772037526626364"
+        "channelId": ""
       },
       "logMemberJoins": {
         "enabled": true,
-        "channelId": "1122772037526626364"
+        "channelId": ""
       },
       "logMemberUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logChannelCreations": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logChannelDeletions": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logChannelUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logThreadCreations": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logThreadDeletions": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logThreadUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logRoleCreations": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logRoleDeletions": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logRoleUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logMessageCreation": {
         "enabled": true,
         "channelId": ""
       },
       "logMessageDeletions": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logMessageEdits": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logVoiceStateUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logInviteCreations": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logInviteDeletions": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logServerUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       },
       "logPermissionUpdates": {
-        "enabled": true,
-        "channelId": "1122772037526626364"
+        "enabled": false,
+        "channelId": ""
       }
+    },
+    "utilitySettings": {
+      "pingCommand": true,
+      "userCommand": true,
+      "serverCommand": true,
+      "pointsCommand": true,
+      "leaderboardCommand": true,
+      "customCommands": []
+    },
+    "moderationSettings": {
+      "modRoles": [],
+      "setNickCommand": true,
+      "kickCommand": true,
+      "banCommand": true,
+      "unbanCommand": true,
+      "muteCommand": true,
+      "unmuteCommand": true,
+      "timeoutCommand": true,
+      "untimeoutCommand": true,
+      "lockCommand": true,
+      "unlockCommand": true,
+      "slowmodeCommand": true,
+      "clearCommand": true
     }
   },
   "stats": [
     {
-      "timestamp": "2024-06-20T06:17:00.191Z",
-      "totalMembers": 754,
-      "onlineMembers": 108
+      "timestamp": "2024-06-22T05:47:07.271Z",
+      "totalMembers": 760,
+      "onlineMembers": 120
     },
     {
-      "timestamp": "2024-06-20T06:18:00.179Z",
-      "totalMembers": 754,
+      "timestamp": "2024-06-22T05:47:13.668Z",
+      "totalMembers": 760,
+      "onlineMembers": 120
+    },
+    {
+      "timestamp": "2024-06-22T06:00:18.994Z",
+      "totalMembers": 760,
       "onlineMembers": 109
     },
     {
-      "timestamp": "2024-06-20T06:22:52.919Z",
-      "totalMembers": 754,
-      "onlineMembers": 108
+      "timestamp": "2024-06-22T06:02:45.105Z",
+      "totalMembers": 760,
+      "onlineMembers": 112
     },
     {
-      "timestamp": "2024-06-20T06:28:17.609Z",
-      "totalMembers": 754,
-      "onlineMembers": 110
+      "timestamp": "2024-06-22T06:03:53.834Z",
+      "totalMembers": 760,
+      "onlineMembers": 112
     },
     {
-      "timestamp": "2024-06-20T06:29:17.610Z",
-      "totalMembers": 754,
-      "onlineMembers": 110
+      "timestamp": "2024-06-22T06:05:23.728Z",
+      "totalMembers": 760,
+      "onlineMembers": 111
     },
     {
-      "timestamp": "2024-06-20T06:30:17.675Z",
-      "totalMembers": 754,
-      "onlineMembers": 108
+      "timestamp": "2024-06-22T06:07:00.431Z",
+      "totalMembers": 760,
+      "onlineMembers": 111
     },
     {
-      "timestamp": "2024-06-20T06:31:32.161Z",
-      "totalMembers": 754,
-      "onlineMembers": 108
+      "timestamp": "2024-06-22T06:07:37.296Z",
+      "totalMembers": 760,
+      "onlineMembers": 112
     },
     {
-      "timestamp": "2024-06-20T06:32:32.157Z",
-      "totalMembers": 754,
-      "onlineMembers": 109
+      "timestamp": "2024-06-22T06:08:01.203Z",
+      "totalMembers": 760,
+      "onlineMembers": 112
     },
     {
-      "timestamp": "2024-06-20T06:33:32.202Z",
-      "totalMembers": 754,
-      "onlineMembers": 109
+      "timestamp": "2024-06-22T06:37:30.383Z",
+      "totalMembers": 760,
+      "onlineMembers": 101
     },
     {
-      "timestamp": "2024-06-20T06:34:32.209Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:35:32.219Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:36:32.209Z",
-      "totalMembers": 754,
-      "onlineMembers": 109
-    },
-    {
-      "timestamp": "2024-06-20T06:37:32.214Z",
-      "totalMembers": 754,
-      "onlineMembers": 109
-    },
-    {
-      "timestamp": "2024-06-20T06:39:03.956Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:40:03.994Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:42:46.530Z",
-      "totalMembers": 754,
-      "onlineMembers": 109
-    },
-    {
-      "timestamp": "2024-06-20T06:46:50.613Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:48:50.608Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:50:09.142Z",
-      "totalMembers": 754,
-      "onlineMembers": 107
-    },
-    {
-      "timestamp": "2024-06-20T06:51:09.188Z",
-      "totalMembers": 754,
-      "onlineMembers": 106
-    },
-    {
-      "timestamp": "2024-06-20T06:52:09.175Z",
-      "totalMembers": 754,
-      "onlineMembers": 106
-    },
-    {
-      "timestamp": "2024-06-20T06:53:09.240Z",
-      "totalMembers": 754,
-      "onlineMembers": 105
-    },
-    {
-      "timestamp": "2024-06-20T06:54:09.229Z",
-      "totalMembers": 754,
-      "onlineMembers": 105
-    },
-    {
-      "timestamp": "2024-06-20T06:55:09.231Z",
-      "totalMembers": 754,
-      "onlineMembers": 102
-    },
-    {
-      "timestamp": "2024-06-20T06:56:09.200Z",
-      "totalMembers": 754,
-      "onlineMembers": 102
-    },
-    {
-      "timestamp": "2024-06-20T06:57:09.214Z",
-      "totalMembers": 754,
-      "onlineMembers": 105
-    },
-    {
-      "timestamp": "2024-06-20T06:58:09.202Z",
-      "totalMembers": 754,
-      "onlineMembers": 105
-    },
-    {
-      "timestamp": "2024-06-20T06:59:09.221Z",
-      "totalMembers": 754,
-      "onlineMembers": 103
-    },
-    {
-      "timestamp": "2024-06-20T07:00:09.179Z",
-      "totalMembers": 754,
-      "onlineMembers": 103
-    },
-    {
-      "timestamp": "2024-06-20T07:01:09.239Z",
-      "totalMembers": 754,
-      "onlineMembers": 104
-    },
-    {
-      "timestamp": "2024-06-20T07:02:09.222Z",
-      "totalMembers": 754,
-      "onlineMembers": 104
-    },
-    {
-      "timestamp": "2024-06-20T18:35:33.041Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
-    },
-    {
-      "timestamp": "2024-06-20T18:36:33.041Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
-    },
-    {
-      "timestamp": "2024-06-20T18:37:33.042Z",
-      "totalMembers": 755,
-      "onlineMembers": 136
-    },
-    {
-      "timestamp": "2024-06-20T18:39:59.859Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
-    },
-    {
-      "timestamp": "2024-06-20T18:40:59.883Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
-    },
-    {
-      "timestamp": "2024-06-20T18:41:59.814Z",
-      "totalMembers": 755,
-      "onlineMembers": 139
-    },
-    {
-      "timestamp": "2024-06-20T18:43:42.081Z",
-      "totalMembers": 755,
-      "onlineMembers": 138
-    },
-    {
-      "timestamp": "2024-06-20T18:44:42.226Z",
-      "totalMembers": 755,
-      "onlineMembers": 138
-    },
-    {
-      "timestamp": "2024-06-20T18:45:42.072Z",
-      "totalMembers": 755,
-      "onlineMembers": 139
-    },
-    {
-      "timestamp": "2024-06-20T18:46:42.071Z",
-      "totalMembers": 755,
-      "onlineMembers": 140
-    },
-    {
-      "timestamp": "2024-06-20T18:47:42.124Z",
-      "totalMembers": 755,
-      "onlineMembers": 140
-    },
-    {
-      "timestamp": "2024-06-20T18:49:18.998Z",
-      "totalMembers": 755,
-      "onlineMembers": 136
-    },
-    {
-      "timestamp": "2024-06-20T18:50:18.907Z",
-      "totalMembers": 755,
-      "onlineMembers": 136
-    },
-    {
-      "timestamp": "2024-06-20T18:51:18.863Z",
-      "totalMembers": 755,
-      "onlineMembers": 136
-    },
-    {
-      "timestamp": "2024-06-20T18:52:18.882Z",
-      "totalMembers": 755,
-      "onlineMembers": 136
-    },
-    {
-      "timestamp": "2024-06-20T18:53:18.925Z",
-      "totalMembers": 755,
-      "onlineMembers": 134
-    },
-    {
-      "timestamp": "2024-06-20T18:54:18.866Z",
-      "totalMembers": 755,
-      "onlineMembers": 134
-    },
-    {
-      "timestamp": "2024-06-20T18:55:18.951Z",
-      "totalMembers": 755,
-      "onlineMembers": 134
-    },
-    {
-      "timestamp": "2024-06-20T18:56:18.891Z",
-      "totalMembers": 755,
-      "onlineMembers": 134
-    },
-    {
-      "timestamp": "2024-06-20T18:57:18.921Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
-    },
-    {
-      "timestamp": "2024-06-20T18:58:18.985Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
-    },
-    {
-      "timestamp": "2024-06-20T18:59:18.936Z",
-      "totalMembers": 755,
-      "onlineMembers": 137
+      "timestamp": "2024-06-22T06:38:23.985Z",
+      "totalMembers": 760,
+      "onlineMembers": 101
     }
-  ],
-  "logs": [
-    {
-      "message": "Message Edited: tommy141x (600063289782698004) in #logs (1122772037526626364): Old Content: , New Content: ",
-      "timestamp": "2024-06-20T06:18:34.882Z",
-      "type": "message"
-    },
-    {
-      "message": "Message Edited: tommy141x (600063289782698004) in #logs (1122772037526626364): Old Content: , New Content: ",
-      "timestamp": "2024-06-20T06:20:10.807Z",
-      "type": "message"
-    },
-    {
-      "message": "Message Edited: tommy141x (600063289782698004) in #logs (1122772037526626364): Old Content: , New Content: ",
-      "timestamp": "2024-06-20T06:21:57.094Z",
-      "type": "message"
-    },
-    {
-      "message": "Message Edited: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): Old Content: , New Content: ",
-      "timestamp": "2024-06-20T06:21:57.321Z",
-      "type": "message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#0000 (1165194346212098111) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:23.037Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:23.195Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:23.349Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:23.494Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:23.631Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:23.750Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#0000 (1165194346212098111) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:27.518Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:28.408Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:28.622Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:28.760Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:28.943Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:29.103Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:33.716Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:33.929Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:34.029Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:34.140Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#5936 (1244494475472932895) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:23:34.349Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: tommy141x (600063289782698004) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:26:47.222Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#0000 (1165194346212098111) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:27:34.400Z",
-      "type": "new-message"
-    },
-    {
-      "message": "Message Created: Tornado Emergency#0000 (1165194346212098111) in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:27:42.558Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:41:03.838Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:41:28.684Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:41:46.787Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **edited a message** in #logs (1122772037526626364): Old Content: , New Content: ",
-      "timestamp": "2024-06-20T06:41:59.077Z",
-      "type": "message"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:41:59.412Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:43:29.410Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **edited a message** in #logs (1122772037526626364): Old Content: , New Content: ",
-      "timestamp": "2024-06-20T06:43:32.017Z",
-      "type": "message"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:43:32.358Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message** in #logs (1122772037526626364): test",
-      "timestamp": "2024-06-20T06:44:58.982Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **edited a message** in #logs (1122772037526626364): Old Content: test, New Content: testwe",
-      "timestamp": "2024-06-20T06:45:02.251Z",
-      "type": "message"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:45:02.557Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:45:11.216Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:45:15.477Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **joined voice channel** Lounge (1170116209421860974)",
-      "timestamp": "2024-06-20T06:45:52.785Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **unmuted themselves**",
-      "timestamp": "2024-06-20T06:45:52.787Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **undeafened themselves**",
-      "timestamp": "2024-06-20T06:45:52.788Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:45:53.163Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **muted themselves**",
-      "timestamp": "2024-06-20T06:45:56.060Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **deafened themselves**",
-      "timestamp": "2024-06-20T06:45:56.061Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **unmuted themselves**",
-      "timestamp": "2024-06-20T06:45:56.745Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **undeafened themselves**",
-      "timestamp": "2024-06-20T06:45:56.746Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **left voice channel** Lounge (1170116209421860974)",
-      "timestamp": "2024-06-20T06:46:01.919Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:46:02.303Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **joined voice channel** Lounge (1170116209421860974)",
-      "timestamp": "2024-06-20T06:46:10.672Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:46:11.010Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **left voice channel** Lounge (1170116209421860974)",
-      "timestamp": "2024-06-20T06:46:20.558Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@1165194346212098111> **sent a message** in #logs (1122772037526626364): ",
-      "timestamp": "2024-06-20T06:46:20.876Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message in** #logs (1122772037526626364): test",
-      "timestamp": "2024-06-20T18:33:46.656Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message in** #logs (1122772037526626364): test",
-      "timestamp": "2024-06-20T18:34:03.652Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **edited a message in** <#1122772037526626364>: test \n New Content: teste",
-      "timestamp": "2024-06-20T18:34:05.953Z",
-      "type": "message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message in** #logs (1122772037526626364): test",
-      "timestamp": "2024-06-20T18:34:33.859Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **edited a message in** <#1122772037526626364>. \n **Old Content:** test \n **New Content:** teste",
-      "timestamp": "2024-06-20T18:34:36.304Z",
-      "type": "message"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message in** <#1122772037526626364>:\ntest",
-      "timestamp": "2024-06-20T18:39:01.395Z",
-      "type": "new-message"
-    },
-    {
-      "message": "<@600063289782698004> **edited a message in** <#1122772037526626364>. \n **Old Content:** test \n **New Content:** testlol",
-      "timestamp": "2024-06-20T18:39:07.256Z",
-      "type": "message"
-    },
-    {
-      "message": "<@600063289782698004> **had a message deleted in** <#1122772037526626364> **by** Unknown moderator:\ntestlol",
-      "timestamp": "2024-06-20T18:39:12.192Z",
-      "type": "message"
-    },
-    {
-      "message": "<@600063289782698004> **joined voice channel** <#1170116209421860974>",
-      "timestamp": "2024-06-20T18:41:54.041Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **unmuted themselves**",
-      "timestamp": "2024-06-20T18:41:54.042Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **undeafened themselves**",
-      "timestamp": "2024-06-20T18:41:54.043Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **left voice channel** <#1170116209421860974>",
-      "timestamp": "2024-06-20T18:41:55.970Z",
-      "type": "voice"
-    },
-    {
-      "message": "<@600063289782698004> **sent a message in** <#1122772037526626364>:\nt",
-      "timestamp": "2024-06-20T18:42:56.257Z",
-      "type": "new-message"
-    }
-  ],
-  "embeds": {}
+  ]
 }

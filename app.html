@@ -510,7 +510,7 @@
                     );
 
                     // Filter logs for the last 24 hours
-                    const logsLast24Hours = logs.filter(
+                    const logsLast24Hours = (logs || []).filter(
                         (log) => new Date(log.timestamp) >= twentyFourHoursAgo,
                     );
 
@@ -1234,8 +1234,6 @@
                             updateSubmitButtonState();
                         },
                     });
-
-                    console.log(pond);
                     // Create image object
                     const imageIcon = document.createElement("span");
                     imageIcon.setAttribute(
@@ -1304,12 +1302,13 @@
                 };
 
                 const handleFilePondRevert = (uniqueFileId, load, error) => {
-                    const fileName = uniqueFileId.split("/").pop();
-                    const file = FilePond.findFile(uniqueFileId);
-                    if (file.origin === FilePond.FileOrigin.LOCAL) {
-                        load();
+                    if (
+                        document
+                            .getElementById("embedSettingsForm")
+                            .getAttribute("reset-inprogress")
+                    )
                         return;
-                    }
+                    const fileName = uniqueFileId.split("/").pop();
                     document
                         .getElementById("embedSettingsForm")
                         .removeAttribute(`data-${fileName.split("-")[0]}-url`);
@@ -1490,7 +1489,15 @@
                         "none";
                     document.getElementById("submitButton").textContent =
                         "Send Embed";
-                    Object.values(ponds).forEach((pond) => pond.removeFiles());
+                    document
+                        .getElementById("embedSettingsForm")
+                        .addAttribute("reset-inprogress", true);
+                    Object.values(ponds).forEach((pond) => {
+                        pond.removeFiles();
+                    });
+                    document
+                        .getElementById("embedSettingsForm")
+                        .removeAttribute("reset-inprogress");
                     selectedMessageID = null;
                 };
 
@@ -1546,7 +1553,6 @@
                                 "Channel, Title, and Description are required.",
                             status: "danger",
                         });
-                        console.log(formData);
                         return;
                     }
 
@@ -1684,12 +1690,524 @@
             </script>
         </div>
 
-        <div id="utility" class="page uk-background-secondary">
-            <!-- utility page -->
+        <div id="utility" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Utility Settings
+            </h1>
+            <div
+                id="utilityCards"
+                class="uk-margin"
+                style="display: flex; flex-wrap: wrap"
+            >
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+
+            <h2 class="uk-h2 text-foreground" style="margin: 1rem">
+                Custom Commands
+            </h2>
+            <div id="customCommandsContainer">
+                <!-- Custom commands will be listed here -->
+            </div>
+            <button
+                id="addCustomCommand"
+                class="uk-button uk-button-primary uk-margin"
+            >
+                Add Custom Command
+            </button>
+
+            <button
+                id="saveSettings"
+                style="margin: 0.5rem"
+                class="uk-button uk-button-primary uk-margin uk-margin-top"
+            >
+                Save Settings
+            </button>
         </div>
-        <div id="moderation" class="page uk-background-secondary">
-            <!-- moderation page -->
+
+        <div id="customCommandModal" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <h2 class="uk-modal-title">Custom Command</h2>
+                <form id="customCommandForm">
+                    <input
+                        class="uk-input uk-margin"
+                        type="text"
+                        placeholder="Command Name"
+                        id="commandName"
+                        required
+                    />
+                    <input
+                        class="uk-input uk-margin"
+                        type="text"
+                        placeholder="Description"
+                        id="commandDescription"
+                        required
+                    />
+                    <textarea
+                        class="uk-textarea uk-margin"
+                        placeholder="Messages (one per line)"
+                        id="commandMessages"
+                    ></textarea>
+                    <div id="embedsContainer"></div>
+                    <button
+                        type="button"
+                        class="uk-button uk-button-secondary uk-margin"
+                        id="addEmbed"
+                    >
+                        Add Embed
+                    </button>
+                    <div class="uk-margin">
+                        <button
+                            class="uk-button uk-button-primary"
+                            type="submit"
+                        >
+                            Save Command
+                        </button>
+                        <button
+                            class="uk-button uk-button-default uk-modal-close"
+                            type="button"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const utilityCards = document.getElementById("utilityCards");
+                const customCommandsContainer = document.getElementById(
+                    "customCommandsContainer",
+                );
+                const saveButton = document.getElementById("saveSettings");
+                const addCustomCommandButton =
+                    document.getElementById("addCustomCommand");
+                const customCommandForm =
+                    document.getElementById("customCommandForm");
+                const embedsContainer =
+                    document.getElementById("embedsContainer");
+                const addEmbedButton = document.getElementById("addEmbed");
+                let settings;
+
+                // Fetch current settings
+                fetch("/api/settings")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        settings = data;
+                        renderCards();
+                        renderCustomCommands();
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching settings:", error);
+                        UIkit.notification({
+                            message: "Failed to load settings",
+                            status: "danger",
+                        });
+                    });
+
+                function renderCards() {
+                    const utilitySettings = settings.utilitySettings;
+                    for (const [key, value] of Object.entries(
+                        utilitySettings,
+                    )) {
+                        if (typeof value === "boolean") {
+                            const card = createCard(key, value);
+                            utilityCards.appendChild(card);
+                        }
+                    }
+                }
+
+                function createCard(commandName, isEnabled) {
+                    const card = document.createElement("div");
+                    card.className = "uk-card uk-card-default uk-card-body";
+                    card.style = "margin: 0.5rem; height: 8rem; width: 15rem;";
+                    card.innerHTML = `
+                                   <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
+                                       <h3>/${commandName.replace("Command", "")}</h3>
+                                       <label>
+                                           <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
+                                           ${isEnabled ? "Enabled" : "Disabled"}
+                                       </label>
+                                   </div>
+                                   <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
+                               `;
+                    return card;
+                }
+
+                function renderCustomCommands() {
+                    customCommandsContainer.innerHTML = "";
+                    settings.utilitySettings.customCommands.forEach(
+                        (command, index) => {
+                            const commandElement =
+                                document.createElement("div");
+                            commandElement.className =
+                                "uk-card uk-card-default uk-card-body uk-margin";
+                            commandElement.innerHTML = `
+                        <h3>${command.name}</h3>
+                        <p>${command.description}</p>
+                        <button class="uk-button uk-button-primary uk-margin-small-right" onclick="editCustomCommand(${index})">Edit</button>
+                        <button class="uk-button uk-button-danger" onclick="deleteCustomCommand(${index})">Delete</button>
+                    `;
+                            customCommandsContainer.appendChild(commandElement);
+                        },
+                    );
+                }
+
+                let editingIndex = -1;
+
+                function addEmbed(color = "") {
+                    const embedDiv = document.createElement("div");
+                    embedDiv.className = "uk-margin";
+                    embedDiv.innerHTML = `
+                           <input class="uk-input uk-margin-small" type="text" placeholder="Embed Color" name="embedColor[]" data-coloris value="${color}"
+                                  style="background-color: var(--background); border-width: 0.1rem; border-style: solid; border-color: #828282; border-radius: 0.5rem;">
+                           <input class="uk-input uk-margin-small" type="text" placeholder="Embed Title" name="embedTitle[]">
+                           <textarea class="uk-textarea uk-margin-small" placeholder="Embed Description" name="embedDescription[]"></textarea>
+                           <button type="button" class="uk-button uk-button-danger uk-margin-small" onclick="this.parentElement.remove()">Remove Embed</button>
+                       `;
+                    embedsContainer.appendChild(embedDiv);
+                }
+
+                function rgbToInt(rgbString) {
+                    const cleanedString = rgbString
+                        .replace("rgb(", "")
+                        .replace(")", "");
+                    const [r, g, b] = cleanedString.split(",");
+                    return (
+                        (parseInt(r) << 16) | (parseInt(g) << 8) | parseInt(b)
+                    );
+                }
+
+                function intToRgb(colorInt) {
+                    const r = (colorInt >> 16) & 255;
+                    const g = (colorInt >> 8) & 255;
+                    const b = colorInt & 255;
+                    return `rgb(${r}, ${g}, ${b})`;
+                }
+
+                addEmbedButton.addEventListener("click", addEmbed);
+
+                addCustomCommandButton.addEventListener("click", () => {
+                    editingIndex = -1;
+                    customCommandForm.reset();
+                    embedsContainer.innerHTML = "";
+                    UIkit.modal("#customCommandModal").show();
+                });
+
+                customCommandForm.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    const name = document.getElementById("commandName").value;
+                    const description =
+                        document.getElementById("commandDescription").value;
+                    const messages = document
+                        .getElementById("commandMessages")
+                        .value.split("\n")
+                        .filter((msg) => msg.trim() !== "");
+
+                    const embeds = Array.from(
+                        document.querySelectorAll("#embedsContainer > div"),
+                    ).map((div) => ({
+                        color: rgbToInt(
+                            div.querySelector('[name="embedColor[]"]').value,
+                        ),
+                        title: div.querySelector('[name="embedTitle[]"]').value,
+                        description: div.querySelector(
+                            '[name="embedDescription[]"]',
+                        ).value,
+                    }));
+
+                    const newCommand = { name, description, messages, embeds };
+
+                    if (editingIndex === -1) {
+                        settings.utilitySettings.customCommands.push(
+                            newCommand,
+                        );
+                    } else {
+                        settings.utilitySettings.customCommands[editingIndex] =
+                            newCommand;
+                    }
+
+                    renderCustomCommands();
+                    UIkit.modal("#customCommandModal").hide();
+                    UIkit.notification({
+                        message:
+                            editingIndex === -1
+                                ? "Custom command added successfully"
+                                : "Custom command updated successfully",
+                        status: "success",
+                    });
+                });
+
+                window.editCustomCommand = (index) => {
+                    editingIndex = index;
+                    const command =
+                        settings.utilitySettings.customCommands[index];
+                    document.getElementById("commandName").value = command.name;
+                    document.getElementById("commandDescription").value =
+                        command.description;
+                    document.getElementById("commandMessages").value =
+                        command.messages.join("\n");
+
+                    embedsContainer.innerHTML = "";
+                    command.embeds.forEach((embed) => {
+                        addEmbed(intToRgb(embed.color));
+                        const lastEmbed = embedsContainer.lastElementChild;
+                        lastEmbed.querySelector('[name="embedTitle[]"]').value =
+                            embed.title;
+                        lastEmbed.querySelector(
+                            '[name="embedDescription[]"]',
+                        ).value = embed.description;
+                    });
+
+                    UIkit.modal("#customCommandModal").show();
+                };
+
+                saveButton.addEventListener("click", () => {
+                    const checkboxes = document.querySelectorAll(
+                        '#utilityCards input[type="checkbox"]',
+                    );
+                    checkboxes.forEach((checkbox) => {
+                        const commandName = checkbox.dataset.command;
+                        settings.utilitySettings[commandName] =
+                            checkbox.checked;
+                    });
+
+                    fetch("/api/settings", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(settings),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            UIkit.notification({
+                                message: "Settings saved successfully",
+                                status: "success",
+                            });
+                        })
+                        .catch((error) => {
+                            console.error("Error saving settings:", error);
+                            UIkit.notification({
+                                message: "Failed to save settings",
+                                status: "danger",
+                            });
+                        });
+                });
+
+                customCommandForm.onsubmit = (e) => {
+                    e.preventDefault();
+                    settings.utilitySettings.customCommands[editingIndex] = {
+                        name: document.getElementById("commandName").value,
+                        description:
+                            document.getElementById("commandDescription").value,
+                        messages: document
+                            .getElementById("commandMessages")
+                            .value.split("\n")
+                            .filter((msg) => msg.trim() !== ""),
+                        embeds: Array.from(
+                            document.querySelectorAll("#embedsContainer > div"),
+                        ).map((div) => ({
+                            color: div.querySelector('[name="embedColor[]"]')
+                                .value,
+                            title: div.querySelector('[name="embedTitle[]"]')
+                                .value,
+                            description: div.querySelector(
+                                '[name="embedDescription[]"]',
+                            ).value,
+                        })),
+                    };
+                    renderCustomCommands();
+                    UIkit.modal("#customCommandModal").hide();
+                    UIkit.notification({
+                        message: "Custom command updated successfully",
+                        status: "success",
+                    });
+                };
+
+                window.deleteCustomCommand = (index) => {
+                    settings.utilitySettings.customCommands.splice(index, 1);
+                    renderCustomCommands();
+                    UIkit.notification({
+                        message: "Custom command deleted successfully",
+                        status: "success",
+                    });
+                };
+            });
+        </script>
+
+        <div id="moderation" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Moderation Settings
+            </h1>
+
+            <div class="uk-margin-bottom">
+                <label class="uk-form-label" for="modRoleInput">
+                    Moderator Roles
+                </label>
+                <div class="uk-flex uk-flex-middle">
+                    <input
+                        id="modRoleInput"
+                        class="uk-input uk-width-1-2@m"
+                        type="text"
+                        placeholder="Enter role ID"
+                    />
+                    <button
+                        id="addModRole"
+                        class="uk-button uk-button-primary uk-margin-left"
+                    >
+                        Add Role
+                    </button>
+                </div>
+                <div id="modRoleList" class="uk-margin-top"></div>
+            </div>
+
+            <div
+                id="moderationCards"
+                class="uk-margin"
+                style="display: flex; flex-wrap: wrap"
+            >
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+
+            <button
+                id="saveModSettings"
+                style="margin: 0.5rem"
+                class="uk-button uk-button-primary uk-margin-top"
+            >
+                Save Settings
+            </button>
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const moderationCards =
+                    document.getElementById("moderationCards");
+                const saveButton = document.getElementById("saveModSettings");
+                const modRoleInput = document.getElementById("modRoleInput");
+                const addModRoleButton = document.getElementById("addModRole");
+                const modRoleList = document.getElementById("modRoleList");
+                let settings;
+
+                // Fetch current settings
+                fetch("/api/settings")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        settings = data;
+                        renderModRoles();
+                        renderCards();
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching settings:", error);
+                        UIkit.notification({
+                            message: "Failed to load settings",
+                            status: "danger",
+                        });
+                    });
+
+                function renderModRoles() {
+                    modRoleList.innerHTML = "";
+                    settings.moderationSettings.modRoles.forEach((roleId) => {
+                        const roleElement = document.createElement("div");
+                        roleElement.className =
+                            "uk-flex uk-flex-middle uk-margin-small-bottom";
+                        roleElement.innerHTML = `
+                        <span class="uk-margin-small-right">${roleId}</span>
+                        <button class="uk-button uk-button-danger uk-button-small" data-role-id="${roleId}">Remove</button>
+                    `;
+                        modRoleList.appendChild(roleElement);
+                    });
+
+                    // Add event listeners to remove buttons
+                    modRoleList.querySelectorAll("button").forEach((button) => {
+                        button.addEventListener("click", (e) => {
+                            const roleId = e.target.dataset.roleId;
+                            settings.moderationSettings.modRoles =
+                                settings.moderationSettings.modRoles.filter(
+                                    (id) => id !== roleId,
+                                );
+                            renderModRoles();
+                        });
+                    });
+                }
+
+                function renderCards() {
+                    moderationCards.innerHTML = "";
+                    const moderationSettings = settings.moderationSettings;
+                    for (const [key, value] of Object.entries(
+                        moderationSettings,
+                    )) {
+                        if (typeof value === "boolean") {
+                            const card = createCard(key, value);
+                            moderationCards.appendChild(card);
+                        }
+                    }
+                }
+
+                function createCard(commandName, isEnabled) {
+                    const card = document.createElement("div");
+                    card.className = "uk-card uk-card-default uk-card-body";
+                    card.style = "margin: 0.5rem; height: 8rem; width: 15rem;";
+                    card.innerHTML = `
+                    <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
+                        <h3>/${commandName.replace("Command", "")}</h3>
+                        <label>
+                            <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
+                            ${isEnabled ? "Enabled" : "Disabled"}
+                        </label>
+                    </div>
+                    <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
+                `;
+                    return card;
+                }
+
+                addModRoleButton.addEventListener("click", () => {
+                    const roleId = modRoleInput.value.trim();
+                    if (
+                        roleId &&
+                        !settings.moderationSettings.modRoles.includes(roleId)
+                    ) {
+                        settings.moderationSettings.modRoles.push(roleId);
+                        modRoleInput.value = "";
+                        renderModRoles();
+                    }
+                });
+
+                saveButton.addEventListener("click", () => {
+                    const checkboxes = document.querySelectorAll(
+                        '#moderationCards input[type="checkbox"]',
+                    );
+                    checkboxes.forEach((checkbox) => {
+                        const commandName = checkbox.dataset.command;
+                        settings.moderationSettings[commandName] =
+                            checkbox.checked;
+                    });
+
+                    fetch("/api/settings", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(settings),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            UIkit.notification({
+                                message:
+                                    "Moderation settings saved successfully",
+                                status: "success",
+                            });
+                        })
+                        .catch((error) => {
+                            console.error("Error saving settings:", error);
+                            UIkit.notification({
+                                message: "Failed to save moderation settings",
+                                status: "danger",
+                            });
+                        });
+                });
+            });
+        </script>
         <div id="automod" class="page uk-background-secondary">
             <!-- automod page -->
         </div>
