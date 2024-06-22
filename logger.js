@@ -5,13 +5,14 @@ class Logger {
   constructor(client, settings) {
     this.settings = settings;
     this.client = client;
+    console.log("Initalized Logger and set client to: ", this.client);
     this.registerEventListeners();
-    //call stats right away
     this.collectStats();
     this.interval = setInterval(this.collectStats, 60000 * 30);
   }
 
   async collectStats() {
+    console.log("Collecting stats, this.client is: ", this.client);
     const guild = await this.client.guilds.fetch(config.guildID);
     const guildPreview = await guild.fetch();
     let totalMembers = guild.memberCount;

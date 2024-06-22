@@ -221,6 +221,11 @@ client.once("ready", () => {
     await commandHandler.handleCommand(interaction);
   });
 
+  client.on("disconnect", () => {
+    console.log("Disconnected. Attempting to reconnect...");
+    client.login(config.botToken);
+  });
+
   const guild = client.guilds.cache.get(config.guildID);
   if (guild) {
     const guildIconURL = guild.iconURL();
