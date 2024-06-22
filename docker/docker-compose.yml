@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  os-discord-bot:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config.json:/app/config.json
+      - ./db.json:/app/db.json
