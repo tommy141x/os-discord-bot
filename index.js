@@ -56,7 +56,6 @@ app.use(express.json());
 app.use(favicon(__dirname + "/public/favicon.ico"));
 
 // Initialize Discord client
-console.log(Object.values(GatewayIntentBits));
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
 });
