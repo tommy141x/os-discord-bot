@@ -222,28 +222,6 @@
                 </button>
                 <button
                     class="uk-width-1-1 uk-button uk-button-default"
-                    onclick="showDiv('self-assignable-roles')"
-                    style="justify-content: left"
-                >
-                    <span
-                        style="margin-right: 0.5rem"
-                        uk-icon="icon: user; ratio: 0.8"
-                    ></span>
-                    Self-Assignable Roles
-                </button>
-                <button
-                    class="uk-width-1-1 uk-button uk-button-default"
-                    onclick="showDiv('starboard')"
-                    style="justify-content: left"
-                >
-                    <span
-                        style="margin-right: 0.5rem"
-                        uk-icon="icon: star; ratio: 0.8"
-                    ></span>
-                    Starboard
-                </button>
-                <button
-                    class="uk-width-1-1 uk-button uk-button-default"
                     onclick="showDiv('temporary-channels')"
                     style="justify-content: left"
                 >
@@ -255,14 +233,14 @@
                 </button>
                 <button
                     class="uk-width-1-1 uk-button uk-button-default"
-                    onclick="showDiv('anti-raid')"
+                    onclick="showDiv('ai-chatbot')"
                     style="justify-content: left"
                 >
                     <span
                         style="margin-right: 0.5rem"
                         uk-icon="icon: world; ratio: 0.8"
                     ></span>
-                    Anti-Raid
+                    Artificial Intelligence
                 </button>
                 <button
                     class="uk-width-1-1 uk-button uk-button-default"
@@ -2781,18 +2759,11 @@
                 });
             </script>
         </div>
-
-        <div id="self-assignable-roles" class="page uk-background-secondary">
-            <!-- self assignable roles page -->
-        </div>
-        <div id="starboard" class="page uk-background-secondary">
-            <!-- starboard page -->
-        </div>
         <div id="temporary-channels" class="page uk-background-secondary">
             <!-- temporary channels page -->
         </div>
-        <div id="anti-raid" class="page uk-background-secondary">
-            <!-- anti-raid page -->
+        <div id="ai-chatbot" class="page uk-background-secondary">
+            <!-- ai page -->
         </div>
         <div id="social-alerts" class="page uk-background-secondary">
             <!-- social alerts page -->
@@ -2820,6 +2791,12 @@
                             const tableBody =
                                 document.getElementById("logs-table-body");
                             tableBody.innerHTML = ""; // Clear existing content
+
+                            data.controlLogs.sort(
+                                (a, b) =>
+                                    new Date(b.timestamp) -
+                                    new Date(a.timestamp),
+                            );
 
                             data.controlLogs.forEach((log) => {
                                 const row = document.createElement("tr");

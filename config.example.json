@@ -1,9 +1,14 @@
 {
-  "port": 3000,
   "guildID": "YOUR_DISCORD_GUILD_ID",
   "botToken": "YOUR_DISCORD_BOT_TOKEN",
   "clientID": "YOUR_DISCORD_CLIENT_ID",
   "clientSecret": "YOUR_DISCORD_CLIENT_SECRET",
   "publicURL": "http://localhost:3000",
+  "twitchClientId": "",
+  "twitchClientSecret": "",
+  "aiType": "openai",
+  "aiModel": "text-davinci-002",
+  "openAIToken": "your-openai-api-key",
+  "claudeApiKey": "your-claude-api-key",
   "sessionSecret": "super-secret-key"
 }

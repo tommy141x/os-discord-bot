@@ -23,10 +23,12 @@ const db = require("./utils/db");
 const Logger = require("./utils/logger");
 const GarbageCollector = require("./utils/garbageCollector");
 const CommandHandler = require("./utils/commands");
+const SocialAlertSystem = require("./utils/socialAlerts");
+const AIChatBot = require("./utils/aiChatBot");
 
 // Initialize Express app
 const app = express();
-const port = process.env.PORT || config.port;
+const port = process.env.PORT || 3000;
 
 // Middleware setup
 app.use(
@@ -61,7 +63,9 @@ const client = new Client({
 });
 
 let logger;
+let chatBot;
 let commandHandler;
+let socialAlertSystem;
 
 // Middleware to attach client to req object
 app.use((req, res, next) => {
@@ -82,6 +86,13 @@ client.once("ready", async () => {
   // Initialize logger and command handler
   logger = new Logger(client, settings.logSettings);
   commandHandler = new CommandHandler(client);
+  socialAlertSystem = new SocialAlertSystem(client);
+  await socialAlertSystem.setup();
+
+  if (config.aiType && (config.openAIToken || config.claudeApiKey)) {
+    chatBot = new AIChatBot(client);
+    await chatBot.initialize();
+  }
 
   // Set up event listeners
   setupEventListeners();
@@ -159,6 +170,54 @@ function getDefaultSettings() {
       externalLinks: false,
       massMention: false,
     },
+    welcomeGoodbyeSettings: {
+      join: {
+        enabled: false,
+        channelId: "",
+        message: "",
+        color: "",
+      },
+      leave: {
+        enabled: false,
+        channelId: "",
+        message: "",
+        color: "",
+      },
+    },
+    autoResponderSettings: {
+      exampleItem: {
+        triggerWords: [],
+        responses: [],
+        ignoredChannels: [],
+        sendAsReply: false,
+      },
+    },
+    aiSettings: {
+      enabled: false,
+      ignoredChannels: [],
+      triggerWords: [],
+      personality: "",
+      dataFetches: [], // Contains URLs to fetch text from to append to the personality
+    },
+    autoRoleSettings: {
+      roles: [], //Roles to give to new members
+    },
+    temporaryChannelSettings: {
+      exampleItem: {
+        triggerChannel: "", // Channel ID
+        category: "", // Category ID
+        maxUsers: 0, // 0 for unlimited
+        channelName: "", // Supports placeholders
+      },
+    },
+    socialAlertSettings: {
+      /*exampleItem: {
+        channelId: "", // could be a twitch username or youtube username / channel id
+        type: "", // twitch or youtube
+        message: "", // message to include in embed
+        rolesToMention: [], // roles to mention
+      },*/
+    },
   };
 }
 
@@ -169,11 +228,179 @@ function setupEventListeners() {
   });
 
   client.on("messageCreate", autoMod);
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+
+    if (chatBot && chatBot.shouldRespond(message)) {
+      const response = await chatBot.generateResponse(message);
+      message.reply(response);
+    }
+  });
+  client.on("guildMemberAdd", async (member) => {
+    await applyAutoRoles(member);
+  });
+  client.on("guildMemberAdd", (member) => welcomeGoodbye(member, true));
+  client.on("guildMemberRemove", (member) => welcomeGoodbye(member, false));
+  setupTemporaryChannels(client);
 
   client.on("disconnect", () => {
     console.log("Disconnected. Attempting to reconnect...");
     client.login(config.botToken);
   });
+}
+
+async function applyAutoRoles(member) {
+  try {
+    const guild = client.guilds.cache.get(config.guildID);
+    if (!guild) {
+      console.error("Guild not found");
+      return;
+    }
+
+    const autoRoles = db.get("settings").autoRoleSettings.roles;
+
+    if (autoRoles.length === 0) {
+      console.log("No auto roles configured");
+      return;
+    }
+
+    const rolesToAdd = autoRoles
+      .map((roleId) => guild.roles.cache.get(roleId))
+      .filter((role) => role);
+
+    if (rolesToAdd.length === 0) {
+      console.log("No valid roles found to add");
+      return;
+    }
+
+    await member.roles.add(rolesToAdd);
+    console.log(`Auto roles applied to ${member.user.tag}`);
+  } catch (error) {
+    console.error("Error applying auto roles:", error);
+  }
+}
+
+function setupTemporaryChannels(client) {
+  client.on("voiceStateUpdate", async (oldState, newState) => {
+    // Check if user joined a voice channel
+    if (newState.channelId && !oldState.channelId) {
+      await handleVoiceJoin(newState, settings);
+    }
+
+    // Check if user left a voice channel
+    if (oldState.channelId && !newState.channelId) {
+      await handleVoiceLeave(oldState);
+    }
+
+    // Check if user switched channels
+    if (
+      oldState.channelId &&
+      newState.channelId &&
+      oldState.channelId !== newState.channelId
+    ) {
+      await handleVoiceLeave(oldState);
+      await handleVoiceJoin(newState);
+    }
+  });
+}
+
+async function handleVoiceJoin(state) {
+  const settings = db.get("settings").temporaryChannelSettings;
+  const triggerChannel = Object.values(settings).find(
+    (item) => item.triggerChannel === state.channelId,
+  );
+  if (!triggerChannel) return;
+
+  const guild = state.guild;
+  const member = state.member;
+
+  const channelName = formatChannelName(triggerChannel.channelName, member);
+
+  try {
+    const newChannel = await guild.channels.create({
+      name: channelName,
+      type: ChannelType.GuildVoice,
+      parent: triggerChannel.category || null,
+      userLimit: triggerChannel.maxUsers || 0,
+      permissionOverwrites: [
+        {
+          id: member.id,
+          allow: [
+            PermissionsBitField.Flags.ManageChannels,
+            PermissionsBitField.Flags.MoveMembers,
+          ],
+        },
+      ],
+    });
+
+    await member.voice.setChannel(newChannel);
+  } catch (error) {
+    console.error("Failed to create temporary channel:", error);
+  }
+}
+
+async function handleVoiceLeave(state) {
+  const channel = state.channel;
+  if (!channel) return;
+
+  // Check if the channel is empty and it's not a trigger channel
+  if (
+    channel.members.size === 0 &&
+    !Object.values(db.get("settings").temporaryChannelSettings).some(
+      (item) => item.triggerChannel === channel.id,
+    )
+  ) {
+    try {
+      await channel.delete();
+    } catch (error) {
+      console.error("Failed to delete temporary channel:", error);
+    }
+  }
+}
+
+function formatChannelName(nameTemplate, member) {
+  return nameTemplate
+    .replace("{username}", member.user.username)
+    .replace("{tag}", member.user.tag)
+    .replace("{id}", member.id);
+}
+
+function welcomeGoodbye(member, isJoining) {
+  const settings = db.get("settings").welcomeGoodbyeSettings;
+  const eventType = isJoining ? "join" : "leave";
+  const eventSettings = settings[eventType];
+
+  if (
+    !eventSettings.enabled ||
+    !eventSettings.channelId ||
+    !eventSettings.message
+  ) {
+    return; // Exit if the event is not enabled or if required settings are missing
+  }
+
+  const channel = member.guild.channels.cache.get(eventSettings.channelId);
+  if (!channel) return; // Exit if the channel is not found
+
+  const embed = new EmbedBuilder()
+    .setColor(eventSettings.color || "#000000")
+    .setDescription(formatMessage(eventSettings.message, member))
+    .setTimestamp();
+
+  if (isJoining) {
+    embed.setTitle("Welcome to the server!");
+    embed.setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
+  } else {
+    embed.setTitle("Goodbye from the server!");
+  }
+
+  channel.send({ embeds: [embed] });
+}
+
+function formatMessage(message, member) {
+  return message
+    .replace("{user}", member.user.toString())
+    .replace("{username}", member.user.username)
+    .replace("{servername}", member.guild.name);
 }
 
 function autoMod(message) {
@@ -767,7 +994,6 @@ function setupRoutes() {
         const guild = await client.guilds.fetch(config.guildID);
         member = await guild.members.fetch(req.user.id);
         user = member.user;
-        console.log(member);
         presence = member.presence;
       } catch (error) {
         console.log("User not found in guild, falling back to direct fetch");
