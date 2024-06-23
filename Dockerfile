@@ -3,8 +3,9 @@ FROM node:alpine
 # Set the working directory
 WORKDIR /app
 
-# Copy the package.json and pnpm-lock.yaml files
-COPY package.json pnpm-lock.yaml ./
+# Copy the package.json and optionally the pnpm-lock.yaml files
+COPY package.json ./
+COPY pnpm-lock.yaml* ./  # Use wildcard to handle potential absence
 
 # Install pnpm globally
 RUN npm install -g pnpm
