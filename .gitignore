@@ -7,7 +7,7 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# Ignore config.json
+# Ignore config.json and db.json
 config.json
 db.json
 

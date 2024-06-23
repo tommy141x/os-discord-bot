@@ -65,6 +65,20 @@
             *::-webkit-scrollbar {
                 display: none;
             }
+
+            #preloader {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 9999;
+                pointer-events: none; /* Allow clicks to pass through */
+            }
+
+            #content {
+                display: none;
+            }
         </style>
         <script>
             // On page load or when changing themes, best to add inline in `head` to avoid FOUC
@@ -77,9 +91,18 @@
             } else {
                 document.documentElement.classList.remove("dark");
             }
+            $(window).on("load", function () {
+                setTimeout(() => {
+                    $("#preloader").fadeOut(1000, function () {
+                        $(this).hide();
+                        $("#content").show();
+                    });
+                }, 250);
+            });
         </script>
     </head>
     <body class="uk-background-default">
+        <div id="preloader" class="uk-background-default"></div>
         <div class="sidebar">
             <div class="sidebar-header">
                 <h1 class="sidebar-header-title text-foreground">
@@ -272,9 +295,131 @@
                         style="margin-right: 0.5rem"
                         uk-icon="icon: history; ratio: 0.8"
                     ></span>
-                    Mod Actions
+                    Audit Log
                 </button>
             </div>
+            <style>
+                .user-profile {
+                    display: flex;
+                    align-items: center;
+                    padding: 10px;
+                    border-radius: 5px;
+                    margin-top: 10px;
+                }
+
+                .user-profile:hover {
+                    cursor: default;
+                }
+
+                .avatar-container {
+                    position: relative;
+                    margin-right: 10px;
+                }
+
+                .avatar {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                }
+
+                .status-indicator {
+                    position: absolute;
+                    bottom: 0;
+                    right: 0;
+                    width: 14px;
+                    height: 14px;
+                    background-color: #43b581;
+                    border-radius: 50%;
+                    border: 2px solid #2c2f33;
+                }
+
+                .user-info {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .username {
+                    color: #ffffff;
+                    font-weight: bold;
+                }
+
+                .user-status {
+                    font-size: 0.8em;
+                }
+            </style>
+            <div
+                class="user-profile uk-background-secondary uk-width-1-1"
+                style="width: 90%"
+            >
+                <div class="avatar-container">
+                    <img src="" alt="User Avatar" class="avatar" />
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="user-info text-foreground">
+                    <div class="username text-primary">Tommy</div>
+                    <div class="user-status text-primary">
+                        ill be on tmrw night...
+                    </div>
+                </div>
+            </div>
+            <script>
+                function updateUserProfile() {
+                    fetch("/api/user")
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error("Network response was not ok");
+                            }
+                            return response.json();
+                        })
+                        .then((data) => {
+                            // Update the avatar
+                            const avatarImg = document.querySelector(".avatar");
+                            avatarImg.src = data.avatar;
+                            avatarImg.alt = `${data.name}'s avatar`;
+
+                            // Update the username
+                            const usernameDiv =
+                                document.querySelector(".username");
+                            usernameDiv.textContent = data.name;
+
+                            // Update the user status
+                            const userStatusDiv =
+                                document.querySelector(".user-status");
+                            userStatusDiv.textContent =
+                                data.onlineStatus || "Viewing Dashboard";
+
+                            // Update the status indicator
+                            const statusIndicator =
+                                document.querySelector(".status-indicator");
+                            statusIndicator.style.backgroundColor =
+                                getStatusColor(data.status);
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching user data:", error);
+                            // Optionally, update the UI to show an error state
+                        });
+                }
+
+                function getStatusColor(status) {
+                    switch (status) {
+                        case "online":
+                            return "#43b581";
+                        case "idle":
+                            return "#faa61a";
+                        case "dnd":
+                            return "#f04747";
+                        case "offline":
+                        default:
+                            return "#747f8d";
+                    }
+                }
+
+                // Call this function when the page loads
+                document.addEventListener(
+                    "DOMContentLoaded",
+                    updateUserProfile,
+                );
+            </script>
             <div
                 style="
                     display: flex;
@@ -394,69 +539,85 @@
             </div>
 
             <style>
-                .no-padding {
-                    position: relative;
-                    width: 400px;
-                    height: 200px;
-                    overflow: hidden; /* Hide overflow to ensure the chart doesn't exceed bounds */
-                    padding: 0 !important;
+                .card-container-overview {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-gap: 1rem;
+                    padding: 1rem;
+                    max-height: calc(2 * (50vh - 1rem));
+                    overflow-y: auto;
                 }
-
+                .uk-card-overview {
+                    position: relative;
+                    width: 100%;
+                    height: calc(30vh - 1rem);
+                    min-height: 200px;
+                }
+                .card-overlay {
+                    position: absolute;
+                    top: 1rem;
+                    left: 1rem;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    z-index: 10;
+                }
+                .no-padding {
+                    padding: 0 !important;
+                    overflow: hidden;
+                }
                 #totalMembersChart,
                 #onlineMembersChart,
                 #joinsChart,
                 #leavesChart,
                 #messagesChart {
                     position: absolute;
-                    width: 405px !important; /* Slightly larger width */
-                    height: 130px !important; /* Slightly larger height */
-                    top: 75px; /* Adjust top to center vertically, starting at 80% of parent height */
-                    left: -2.5px; /* Adjust left to center horizontally */
+                    width: 102% !important; /* Slightly larger than the card */
+                    height: 80% !important; /* 80% of the card's height */
+                    bottom: -1%; /* Align to bottom with slight overflow */
+                    left: -1%; /* Center horizontally with slight overflow */
                 }
             </style>
 
-            <div class="card-container">
-                <div class="uk-card uk-card-default uk-card-body no-padding">
+            <div class="card-container-overview">
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                >
                     <div class="card-overlay" id="totalMembersText">
                         0 Total Members
                     </div>
-                    <canvas
-                        id="totalMembersChart"
-                        height="130"
-                        width="405"
-                    ></canvas>
+                    <canvas id="totalMembersChart"></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body no-padding">
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                >
                     <div class="card-overlay" id="onlineMembersText">
                         Online Members: 0
                     </div>
-                    <canvas
-                        id="onlineMembersChart"
-                        height="130"
-                        width="405"
-                    ></canvas>
+                    <canvas id="onlineMembersChart"></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body no-padding">
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                >
                     <div class="card-overlay" id="joins24HoursText">
                         Joins (Last 24 Hours): 0
                     </div>
-                    <canvas id="joinsChart" height="130" width="405"></canvas>
+                    <canvas id="joinsChart"></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body no-padding">
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                >
                     <div class="card-overlay" id="leaves24HoursText">
                         Leaves (Last 24 Hours): 0
                     </div>
-                    <canvas id="leavesChart" height="130" width="405"></canvas>
+                    <canvas id="leavesChart"></canvas>
                 </div>
-                <div class="uk-card uk-card-default uk-card-body no-padding">
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                >
                     <div class="card-overlay" id="messages24HoursText">
                         Messages (Last 24 Hours): 0
                     </div>
-                    <canvas
-                        id="messagesChart"
-                        height="130"
-                        width="405"
-                    ></canvas>
+                    <canvas id="messagesChart"></canvas>
                 </div>
             </div>
 
@@ -574,6 +735,16 @@
                     }));
 
                     const chartOptions = {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                left: 0,
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                            },
+                        },
                         scales: {
                             x: { display: false },
                             y: { display: false, beginAtZero: true },
@@ -1812,7 +1983,7 @@
                             <h3>/${commandName.replace("Command", "")}</h3>
                             <label>
                                 <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
-                                ${isEnabled ? "Enabled" : "Disabled"}
+                               Enabled
                             </label>
                         </div>
                         <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
@@ -2096,7 +2267,7 @@
                             <h3>/${commandName.replace("Command", "")}</h3>
                             <label>
                                 <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
-                                ${isEnabled ? "Enabled" : "Disabled"}
+                                Enabled
                             </label>
                         </div>
                         <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
@@ -2151,8 +2322,327 @@
                 });
             });
         </script>
-        <div id="automod" class="page uk-background-secondary">
-            <!-- automod page -->
+        <div id="automod" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Auto Moderation Settings
+            </h1>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Ignored Roles</h3>
+                <div class="uk-flex uk-flex-middle uk-margin-top">
+                    <input
+                        class="uk-input uk-width-1-2@m"
+                        type="text"
+                        id="ignoredRoleInput"
+                        placeholder="Role ID"
+                    />
+                    <button
+                        class="uk-button uk-button-primary uk-margin-left"
+                        id="addIgnoredRole"
+                    >
+                        Add Role
+                    </button>
+                </div>
+                <div id="ignoredRoleList" class="uk-margin-top"></div>
+            </div>
+
+            <div class="uk-grid uk-child-width-1-2@m uk-grid-match" uk-grid>
+                <div>
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 class="uk-card-title">Ignored Channels</h3>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="ignoredChannelInput"
+                                placeholder="Channel ID"
+                            />
+                            <button
+                                class="uk-button uk-button-primary uk-margin-small-top"
+                                id="addIgnoredChannel"
+                            >
+                                Add Channel
+                            </button>
+                        </div>
+                        <div
+                            id="ignoredChannelList"
+                            class="uk-margin-small"
+                        ></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 class="uk-card-title">Media-Only Channels</h3>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="mediaOnlyChannelInput"
+                                placeholder="Channel ID"
+                            />
+                            <button
+                                class="uk-button uk-button-primary uk-margin-small-top"
+                                id="addMediaOnlyChannel"
+                            >
+                                Add Channel
+                            </button>
+                        </div>
+                        <div
+                            id="mediaOnlyChannelList"
+                            class="uk-margin-small"
+                        ></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 class="uk-card-title">
+                            YouTube Link-Only Channels
+                        </h3>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="ytLinkOnlyChannelInput"
+                                placeholder="Channel ID"
+                            />
+                            <button
+                                class="uk-button uk-button-primary uk-margin-small-top"
+                                id="addYtLinkOnlyChannel"
+                            >
+                                Add Channel
+                            </button>
+                        </div>
+                        <div
+                            id="ytLinkOnlyChannelList"
+                            class="uk-margin-small"
+                        ></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 class="uk-card-title">Twitch Link-Only Channels</h3>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="ttvLinkOnlyChannelInput"
+                                placeholder="Channel ID"
+                            />
+                            <button
+                                class="uk-button uk-button-primary uk-margin-small-top"
+                                id="addTtvLinkOnlyChannel"
+                            >
+                                Add Channel
+                            </button>
+                        </div>
+                        <div
+                            id="ttvLinkOnlyChannelList"
+                            class="uk-margin-small"
+                        ></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">General Settings</h3>
+                <div class="uk-margin-small">
+                    <label>
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="discordInvites"
+                        />
+                        Block Discord Invites
+                    </label>
+                </div>
+                <div class="uk-margin-small">
+                    <label>
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="externalLinks"
+                        />
+                        Block External Links
+                    </label>
+                </div>
+                <div class="uk-margin-small">
+                    <label>
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="massMention"
+                        />
+                        Block Mass Mentions
+                    </label>
+                </div>
+            </div>
+
+            <button
+                class="uk-button uk-button-primary"
+                id="saveAutoModSettings"
+                style="margin: 0.5rem"
+            >
+                Save Auto Mod Settings
+            </button>
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const autoModPage = document.getElementById("automod");
+                    const saveAutoModButton = document.getElementById(
+                        "saveAutoModSettings",
+                    );
+                    let settings;
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings = data;
+                            renderAutoModSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message:
+                                    "Failed to load auto moderation settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderAutoModSettings() {
+                        renderList(
+                            "ignoredRole",
+                            settings.autoModSettings.ignoredRoles,
+                        );
+                        renderList(
+                            "ignoredChannel",
+                            settings.autoModSettings.ignoredChannels,
+                        );
+                        renderList(
+                            "mediaOnlyChannel",
+                            settings.autoModSettings.mediaOnlyChannels,
+                        );
+                        renderList(
+                            "ytLinkOnlyChannel",
+                            settings.autoModSettings.ytLinkOnlyChannels,
+                        );
+                        renderList(
+                            "ttvLinkOnlyChannel",
+                            settings.autoModSettings.ttvLinkOnlyChannels,
+                        );
+
+                        document.getElementById("discordInvites").checked =
+                            settings.autoModSettings.discordInvites;
+                        document.getElementById("externalLinks").checked =
+                            settings.autoModSettings.externalLinks;
+                        document.getElementById("massMention").checked =
+                            settings.autoModSettings.massMention;
+                    }
+
+                    function renderList(type, items) {
+                        const list = document.getElementById(`${type}List`);
+                        list.innerHTML = "";
+                        items.forEach((item) => {
+                            const itemElement = document.createElement("div");
+                            itemElement.className =
+                                "uk-flex uk-flex-middle uk-margin-small-bottom";
+                            itemElement.innerHTML = `
+                            <span class="uk-margin-small-right">${item}</span>
+                            <button class="uk-button uk-button-danger uk-button-small" data-item="${item}" data-type="${type}">Remove</button>
+                        `;
+                            list.appendChild(itemElement);
+                        });
+
+                        // Add event listeners to remove buttons
+                        list.querySelectorAll("button").forEach((button) => {
+                            button.addEventListener("click", (e) => {
+                                const item = e.target.dataset.item;
+                                const type = e.target.dataset.type;
+                                settings.autoModSettings[`${type}s`] =
+                                    settings.autoModSettings[`${type}s`].filter(
+                                        (id) => id !== item,
+                                    );
+                                renderList(
+                                    type,
+                                    settings.autoModSettings[`${type}s`],
+                                );
+                            });
+                        });
+                    }
+
+                    // Add event listeners for adding items
+                    [
+                        "ignoredRole",
+                        "ignoredChannel",
+                        "mediaOnlyChannel",
+                        "ytLinkOnlyChannel",
+                        "ttvLinkOnlyChannel",
+                    ].forEach((type) => {
+                        document
+                            .getElementById(
+                                `add${type.charAt(0).toUpperCase() + type.slice(1)}`,
+                            )
+                            .addEventListener("click", () => {
+                                const input = document.getElementById(
+                                    `${type}Input`,
+                                );
+                                const item = input.value.trim();
+                                if (
+                                    item &&
+                                    !settings.autoModSettings[
+                                        `${type}s`
+                                    ].includes(item)
+                                ) {
+                                    settings.autoModSettings[`${type}s`].push(
+                                        item,
+                                    );
+                                    input.value = "";
+                                    renderList(
+                                        type,
+                                        settings.autoModSettings[`${type}s`],
+                                    );
+                                }
+                            });
+                    });
+
+                    saveAutoModButton.addEventListener("click", () => {
+                        settings.autoModSettings.discordInvites =
+                            document.getElementById("discordInvites").checked;
+                        settings.autoModSettings.externalLinks =
+                            document.getElementById("externalLinks").checked;
+                        settings.autoModSettings.massMention =
+                            document.getElementById("massMention").checked;
+
+                        settings.autoModSettings = settings.autoModSettings;
+
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message:
+                                        "Auto moderation settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving auto moderation settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message:
+                                        "Failed to save auto moderation settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
         <div id="welcome-goodbye" class="page uk-background-secondary">
             <!-- welcome goodbye page -->
@@ -2309,17 +2799,6 @@
         </div>
         <div id="control-panel-logs" class="page uk-background-secondary">
             <div class="uk-container uk-margin-top">
-                <div class="guild-info">
-                    <img
-                        id="guild-icon"
-                        src=""
-                        alt="Guild Icon"
-                        class="uk-border-circle"
-                        width="64"
-                        height="64"
-                    />
-                    <h2 id="guild-name" class="uk-h1 text-foreground"></h2>
-                </div>
                 <table class="uk-table uk-table-hover">
                     <thead>
                         <tr>
@@ -2337,12 +2816,6 @@
                     fetch("/api/guild")
                         .then((response) => response.json())
                         .then((data) => {
-                            // Set guild icon and name
-                            document.getElementById("guild-icon").src =
-                                data.guildData.icon;
-                            document.getElementById("guild-name").textContent =
-                                data.guildData.name;
-
                             // Populate logs table
                             const tableBody =
                                 document.getElementById("logs-table-body");
@@ -2405,8 +2878,58 @@
             </script>
         </div>
         <div id="mod-actions" class="page uk-background-secondary">
-            <!-- mod actions page -->
+            <div class="uk-container uk-margin-top">
+                <table class="uk-table uk-table-hover">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th class="uk-text-right">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mod-actions-table-body">
+                        <!-- Audit log entries will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                fetch("/api/audit-log")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const tbody = document.getElementById(
+                            "mod-actions-table-body",
+                        );
+
+                        data.forEach((log) => {
+                            const row = document.createElement("tr");
+
+                            const actionCell = document.createElement("td");
+                            const logTarget = log.targetID
+                                ? `${log.targetType} (${log.targetID})`
+                                : "";
+                            actionCell.innerHTML = `
+                                                        <div class="text-foreground" style="font-weight: bold">${log.executorTag} ${log.action} ${logTarget}.</div>
+                                                        <div class="uk-text-muted">${log.executorTag} (#${log.executorID})</div>
+                                                    `;
+
+                            const timeCell = document.createElement("td");
+                            timeCell.className =
+                                "uk-text-right text-foreground";
+                            timeCell.textContent = formatTimestamp(
+                                log.createdAt,
+                            );
+
+                            row.appendChild(actionCell);
+                            row.appendChild(timeCell);
+                            tbody.appendChild(row);
+                        });
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching audit logs:", error);
+                    });
+            });
+        </script>
 
         <script>
             function showDiv(route) {

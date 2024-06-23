@@ -10,6 +10,7 @@ const {
   Client,
   GatewayIntentBits,
   ChannelType,
+  AuditLogEvent,
   GuildSystemChannelFlags,
 } = require("discord.js");
 const path = require("path");
@@ -55,6 +56,7 @@ app.use(express.json());
 app.use(favicon(__dirname + "/public/favicon.ico"));
 
 // Initialize Discord client
+console.log(Object.values(GatewayIntentBits));
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
 });
@@ -148,6 +150,16 @@ function getDefaultSettings() {
       slowmodeCommand: true,
       clearCommand: true,
     },
+    autoModSettings: {
+      ignoredRoles: [],
+      ignoredChannels: [],
+      mediaOnlyChannels: [],
+      ytLinkOnlyChannels: [],
+      ttvLinkOnlyChannels: [],
+      discordInvites: false,
+      externalLinks: false,
+      massMention: false,
+    },
   };
 }
 
@@ -157,10 +169,138 @@ function setupEventListeners() {
     await commandHandler.handleCommand(interaction);
   });
 
+  client.on("messageCreate", autoMod);
+
   client.on("disconnect", () => {
     console.log("Disconnected. Attempting to reconnect...");
     client.login(config.botToken);
   });
+}
+
+function autoMod(message) {
+  const settings = db.get("settings").autoModSettings;
+
+  // Ignore messages from bots
+  if (message.author.bot) return;
+
+  if (message.member.permissions.has("Administrator")) return;
+
+  // Check if the message author's role is in the ignored roles list
+  if (
+    message.member &&
+    message.member.roles.cache.some((role) =>
+      settings.ignoredRoles.includes(role.id),
+    )
+  )
+    return;
+
+  // Check if the channel is in the ignored channels list
+  if (settings.ignoredChannels.includes(message.channel.id)) return;
+
+  // Check media-only channels
+  if (
+    settings.mediaOnlyChannels.includes(message.channel.id) &&
+    message.attachments.size === 0
+  ) {
+    const channel = message.guild.channels.cache.get(message.channel.id);
+    message.delete().catch(console.error);
+    channel.send("Only media is allowed in this channel.").then((msg) => {
+      setTimeout(() => {
+        msg.delete().catch(console.error);
+      }, 3000);
+    });
+    return;
+  }
+
+  // Check YouTube and Twitch link-only channels
+  if (
+    settings.ytLinkOnlyChannels.includes(message.channel.id) ||
+    settings.ttvLinkOnlyChannels.includes(message.channel.id)
+  ) {
+    const isYoutubeLink =
+      message.content.includes("youtube.com") ||
+      message.content.includes("youtu.be");
+    const isTwitchLink = message.content.includes("twitch.tv");
+
+    const isYoutubeChannel = settings.ytLinkOnlyChannels.includes(
+      message.channel.id,
+    );
+    const isTwitchChannel = settings.ttvLinkOnlyChannels.includes(
+      message.channel.id,
+    );
+
+    if (
+      (isYoutubeChannel &&
+        isTwitchChannel &&
+        !isYoutubeLink &&
+        !isTwitchLink) ||
+      (isYoutubeChannel && !isTwitchChannel && !isYoutubeLink) ||
+      (isTwitchChannel && !isYoutubeChannel && !isTwitchLink)
+    ) {
+      const channel = message.guild.channels.cache.get(message.channel.id);
+      message.delete().catch(console.error);
+
+      let errorMessage = "This channel only allows ";
+      if (isYoutubeChannel && isTwitchChannel) {
+        errorMessage += "YouTube and Twitch links.";
+      } else if (isYoutubeChannel) {
+        errorMessage += "YouTube links.";
+      } else {
+        errorMessage += "Twitch links.";
+      }
+
+      channel.send(errorMessage).then((msg) => {
+        setTimeout(() => {
+          msg.delete().catch(console.error);
+        }, 3000);
+      });
+      return;
+    }
+  }
+
+  // Check for Discord invites
+  if (
+    settings.discordInvites &&
+    message.content.match(
+      /(?:https?:\/\/)?(?:www\.)?(?:discord\.(?:gg|io|me|li|com)|discordapp\.com)\/(?:invite\/)?[a-zA-Z0-9]+/i,
+    )
+  ) {
+    const channel = message.guild.channels.cache.get(message.channel.id);
+    message.delete().catch(console.error);
+    channel.send("External discord invites are not allowed.").then((msg) => {
+      setTimeout(() => {
+        msg.delete().catch(console.error);
+      }, 3000);
+    });
+    return;
+  }
+
+  // Check for external links
+  const urlPattern =
+    /(?:https?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)/gi;
+  const matchedUrls = message.content.match(urlPattern);
+  if (settings.externalLinks && matchedUrls) {
+    const channel = message.guild.channels.cache.get(message.channel.id);
+    message.delete().catch(console.error);
+    channel.send("External links are not allowed.").then((msg) => {
+      setTimeout(() => {
+        msg.delete().catch(console.error);
+      }, 3000);
+    });
+    return;
+  }
+
+  // Check for mass mentions
+  if (settings.massMention && message.mentions.users.size > 5) {
+    const channel = message.guild.channels.cache.get(message.channel.id);
+    message.delete().catch(console.error);
+    channel.send("Mass mentions are not allowed.").then((msg) => {
+      setTimeout(() => {
+        msg.delete().catch(console.error);
+      }, 3000);
+    });
+    return;
+  }
 }
 
 // Set guild favicon
@@ -583,6 +723,84 @@ function setupRoutes() {
   // Serve media files
   app.use("/media", express.static(path.join(__dirname, "public", "media")));
 
+  // Get audit log
+  app.get("/api/audit-log", ensureAuthenticated, async (req, res) => {
+    try {
+      const guild = await client.guilds.fetch(config.guildID);
+      const auditLogs = await guild.fetchAuditLogs({ limit: 100 });
+
+      const actionMap = {
+        MemberDisconnect: "disconnected",
+        MemberUpdate: "updated profile of",
+        ChannelOverwriteUpdate: "modified permissions in",
+        MemberRoleUpdate: "updated roles for",
+        InviteCreate: "created an invite",
+        ChannelDelete: "deleted channel",
+        RoleUpdate: "modified role",
+        MemberMove: "moved",
+        ChannelCreate: "created channel",
+        undefined: "performed unknown action on",
+      };
+
+      const auditLogEntries = auditLogs.entries.map((entry) => ({
+        action: actionMap[AuditLogEvent[entry.action]],
+        targetID: entry.target?.id ?? undefined,
+        targetType: entry.targetType ?? undefined,
+        executorID: entry.executor?.id ?? undefined,
+        executorTag: entry.executor?.tag ?? undefined,
+        createdAt: entry.createdAt,
+        changes: entry.changes,
+      }));
+      res.json(auditLogEntries);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to retrieve audit log" });
+    }
+  });
+
+  // Fetch logged in user
+  app.get("/api/user", ensureAuthenticated, async (req, res) => {
+    try {
+      let member, user, presence, activities, customStatus;
+
+      // Try to fetch from guild first
+      try {
+        const guild = await client.guilds.fetch(config.guildID);
+        member = await guild.members.fetch(req.user.id);
+        user = member.user;
+        console.log(member);
+        presence = member.presence;
+      } catch (error) {
+        console.log("User not found in guild, falling back to direct fetch");
+      }
+
+      // If not found in guild, fall back to direct user fetch
+      if (!user) {
+        user = await client.users.fetch(req.user.id, { force: true });
+        presence = user.presence;
+      }
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      activities = presence?.activities || [];
+      customStatus = activities.find(
+        (activity) => activity.type === "CUSTOM_STATUS",
+      );
+
+      res.json({
+        name: member?.displayName || user.username,
+        avatar: user.displayAvatarURL({ format: "png", size: 128 }),
+        status: presence?.status || "offline",
+        customStatus: customStatus?.state || null,
+      });
+    } catch (err) {
+      console.error("Error getting user", err);
+      res.status(500).json({ error: "Failed getting user" });
+    }
+  });
+
   // Fetch Settings
   app.get("/api/settings", ensureAuthenticated, (req, res) => {
     try {
@@ -621,6 +839,13 @@ function setupRoutes() {
       ) {
         commandHandler = new CommandHandler(client);
         logger.logControlEvent("updated command settings", req.user);
+      }
+
+      if (
+        JSON.stringify(currentSettings.autoModSettings) !==
+        JSON.stringify(updatedSettings.autoModSettings)
+      ) {
+        logger.logControlEvent("updated automod settings", req.user);
       }
 
       res.json({ message: `Settings updated successfully` });
