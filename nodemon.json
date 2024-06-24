@@ -1,4 +1,4 @@
 {
-  "watch": ["*.js", "routes/*.js", "config.json"],
-  "ignore": ["sessions/*", "node_modules/*"]
+  "watch": ["*.js", "utils/*.js", "config.json"],
+  "ignore": ["sessions/*", "public/*", "node_modules/*"]
 }

@@ -418,15 +418,20 @@ async function handleVoiceJoin(state) {
       type: ChannelType.GuildVoice,
       parent: triggerChannel.category || null,
       userLimit: triggerChannel.maxUsers || 0,
-      permissionOverwrites: [
-        {
-          id: member.id,
-          allow: [
-            PermissionsBitField.Flags.ManageChannels,
-            PermissionsBitField.Flags.MoveMembers,
-          ],
-        },
-      ],
+    });
+
+    // Sync permissions with the category TEST THIS PLEASE
+    if (triggerChannel.category) {
+      const categoryChannel = guild.channels.cache.get(triggerChannel.category);
+      if (categoryChannel) {
+        await newChannel.lockPermissions();
+      }
+    }
+
+    // Apply permission overwrites
+    await newChannel.permissionOverwrites.create(member.id, {
+      ManageChannels: true,
+      MoveMembers: true,
     });
 
     await member.voice.setChannel(newChannel);
@@ -564,6 +569,7 @@ function autoMod(message) {
   // Check if the message author's role is in the ignored roles list
   if (
     message.member &&
+    Array.isArray(settings.ignoredRoles) &&
     message.member.roles.cache.some((role) =>
       settings.ignoredRoles.includes(role.id),
     )
@@ -571,10 +577,15 @@ function autoMod(message) {
     return;
 
   // Check if the channel is in the ignored channels list
-  if (settings.ignoredChannels.includes(message.channel.id)) return;
+  if (
+    Array.isArray(settings.ignoredChannels) &&
+    settings.ignoredChannels.includes(message.channel.id)
+  )
+    return;
 
   // Check media-only channels
   if (
+    Array.isArray(settings.mediaOnlyChannels) &&
     settings.mediaOnlyChannels.includes(message.channel.id) &&
     message.attachments.size === 0
   ) {
@@ -590,20 +601,22 @@ function autoMod(message) {
 
   // Check YouTube and Twitch link-only channels
   if (
-    settings.ytLinkOnlyChannels.includes(message.channel.id) ||
-    settings.ttvLinkOnlyChannels.includes(message.channel.id)
+    (Array.isArray(settings.ytLinkOnlyChannels) &&
+      settings.ytLinkOnlyChannels.includes(message.channel.id)) ||
+    (Array.isArray(settings.ttvLinkOnlyChannels) &&
+      settings.ttvLinkOnlyChannels.includes(message.channel.id))
   ) {
     const isYoutubeLink =
       message.content.includes("youtube.com") ||
       message.content.includes("youtu.be");
     const isTwitchLink = message.content.includes("twitch.tv");
 
-    const isYoutubeChannel = settings.ytLinkOnlyChannels.includes(
-      message.channel.id,
-    );
-    const isTwitchChannel = settings.ttvLinkOnlyChannels.includes(
-      message.channel.id,
-    );
+    const isYoutubeChannel =
+      Array.isArray(settings.ytLinkOnlyChannels) &&
+      settings.ytLinkOnlyChannels.includes(message.channel.id);
+    const isTwitchChannel =
+      Array.isArray(settings.ttvLinkOnlyChannels) &&
+      settings.ttvLinkOnlyChannels.includes(message.channel.id);
 
     if (
       (isYoutubeChannel &&
@@ -1229,6 +1242,7 @@ function setupRoutes() {
         JSON.stringify(updatedSettings.botPresenceSettings)
       ) {
         clearInterval(botPresenceInterval);
+        setBotPresence();
         botPresenceInterval = setInterval(
           setBotPresence,
           updatedSettings.botPresenceSettings.changeInterval * 60000,

@@ -4,7 +4,10 @@
   "description": "A multi-purpose open source Discord bot.",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "start:forever": "forever -f --minUptime 5000 --spinSleepTime 2000 index.js",
+    "stop:forever": "forever stopall"
   },
   "repository": {
     "type": "git",
@@ -21,6 +24,7 @@
     "express-favicon": "^2.0.4",
     "express-fileupload": "^1.5.0",
     "express-session": "^1.18.0",
+    "forever": "^4.0.3",
     "html": "^1.0.0",
     "openai": "^4.52.0",
     "passport": "^0.7.0",
