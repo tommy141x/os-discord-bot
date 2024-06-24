@@ -534,6 +534,9 @@ async function autoResponder(message) {
 
     for (const trigger of triggerWords) {
       if (message.content.includes(trigger)) {
+        //generate a return statement based of a random chance, where settings[item].chance is a value from 0-1 (0% - 100%) chance of the bot responding
+        if (Math.random() > settings[item].chance) return;
+
         // Simulate typing indicator
         await message.channel.sendTyping();
 
@@ -832,6 +835,18 @@ function setupRoutes() {
         type: channel.type,
       }));
 
+      const roles = guild.roles.cache.map((role) => ({
+        id: role.id,
+        name: role.name,
+      }));
+
+      const categories = guild.channels.cache
+        .filter((channel) => channel.type === 4) // Ensure we're filtering for category channels
+        .map((category) => ({
+          id: category.id,
+          name: category.name,
+        }));
+
       const guildData = {
         id: guild.id,
         name: guild.name,
@@ -860,7 +875,9 @@ function setupRoutes() {
         ),
         totalMembers,
         onlineMembers,
+        categories,
         channels,
+        roles,
       };
 
       res.json({

@@ -1,5 +1,4 @@
 const { Twitch, YouTube } = require("@livecord/notify");
-const { EmbedBuilder } = require("discord.js");
 const config = require("../config.json");
 const db = require("./db.js");
 
@@ -23,7 +22,7 @@ class SocialAlertSystem {
     if (Object.values(settings).some((a) => a.type === "youtube")) {
       this.youtubeInstance = new YouTube({
         interval: 60000,
-        useDatabase: false,
+        useDatabase: true,
       });
 
       this.youtubeInstance.on("ready", (ready) => {
@@ -34,15 +33,18 @@ class SocialAlertSystem {
       this.youtubeInstance.on("upload", (video) => {
         console.log("YouTube new video!", video);
         const alert = Object.values(settings).find(
-          (a) => a.type === "youtube" && a.socialId === video.author,
+          (a) => a.type === "youtube" && a.socialName === video.author,
         );
-        if (alert) {
+
+        if (
+          alert &&
+          this.isTitleWhitelisted(video.title, settings.whitelistTitleWords)
+        ) {
           this.sendAlert(alert, {
-            title: video.title,
+            author: video.author,
             url: video.link,
-            thumbnail: `https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`,
-            type: "video",
-            platform: "YouTube",
+            action: "uploaded a new video",
+            platform: "youtube",
           });
         }
       });
@@ -62,7 +64,7 @@ class SocialAlertSystem {
       this.twitchInstance = new Twitch({
         client: {
           id: this.config.twitchClientId,
-          token: twitchToken,
+          token: twitchToken.access_token,
         },
         interval: 60000,
       });
@@ -77,18 +79,25 @@ class SocialAlertSystem {
         const alert = Object.values(settings).find(
           (a) => a.type === "twitch" && a.socialId === channel.user_name,
         );
-        if (alert) {
+
+        if (
+          alert &&
+          this.isTitleWhitelisted(channel.title, settings.whitelistTitleWords)
+        ) {
           this.sendAlert(alert, {
+            author: settings.socialName || channel.user_name,
             title: channel.title,
             url: `https://www.twitch.tv/${channel.user_login}`,
             thumbnail: channel.thumbnail_url
               .replace("{width}", "1280")
               .replace("{height}", "720"),
-            type: "livestream",
-            platform: "Twitch",
+            platform: "twitch",
+            action: "started streaming",
           });
         }
       });
+    } else {
+      console.log("Twitch settings are not configured properly!");
     }
   }
 
@@ -97,6 +106,7 @@ class SocialAlertSystem {
       for (const alert of Object.values(settings)) {
         if (alert.type === "youtube") {
           this.youtubeInstance.subscribe(alert.socialId);
+          console.log("Subscribed to " + alert.socialId + " on YouTube!");
         }
       }
     }
@@ -107,23 +117,25 @@ class SocialAlertSystem {
       for (const alert of Object.values(settings)) {
         if (alert.type === "twitch") {
           this.twitchInstance.follow([alert.socialId]);
+          console.log("Followed " + alert.socialId + " on Twitch!");
         }
       }
     }
   }
 
+  isTitleWhitelisted(title, whitelist) {
+    if (!whitelist || whitelist.length === 0) {
+      return true; // If whitelist is empty, always return true
+    }
+    return whitelist.some((word) =>
+      title.toLowerCase().includes(word.toLowerCase()),
+    );
+  }
+
   async sendAlert(alert, content) {
-    const embed = new EmbedBuilder()
-      .setColor(content.platform === "YouTube" ? "#FF0000" : "#6441A4")
-      .setTitle(content.title)
-      .setURL(content.url)
-      .setImage(content.thumbnail)
-      .setDescription(alert.message)
-      .addFields(
-        { name: "Type", value: content.type, inline: true },
-        { name: "Platform", value: content.platform, inline: true },
-      )
-      .setTimestamp();
+    const message = alert.message
+      .replace("{author}", "**" + content.author + "**")
+      .replace("{uploadedANewVideoOrStartedStreaming}", content.action);
 
     const mentionString = alert.rolesToMention
       .map((roleId) => `<@&${roleId}>`)
@@ -131,7 +143,29 @@ class SocialAlertSystem {
 
     const channel = this.client.channels.cache.get(alert.channelId);
     if (channel) {
-      await channel.send({ content: mentionString, embeds: [embed] });
+      if (alert.platform === "twitch") {
+        // Prepare embed for Twitch alerts
+        const embed = {
+          color: 0x9146ff,
+          author: {
+            name: content.author,
+          },
+          title: content.title,
+          url: content.url,
+          image: {
+            url: content.thumbnail,
+          },
+        };
+
+        await channel.send({
+          content: `${mentionString} ${message}`,
+          embeds: [embed],
+        });
+      } else if (alert.platform === "youtube") {
+        await channel.send({
+          content: mentionString + " " + message + "\n" + content.url,
+        });
+      }
     }
   }
 

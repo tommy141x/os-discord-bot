@@ -228,7 +228,7 @@
                 >
                     <span
                         style="margin-right: 0.5rem"
-                        uk-icon="icon: clock; ratio: 0.8"
+                        uk-icon="icon: tag; ratio: 0.8"
                     ></span>
                     Temporary Channels
                 </button>
@@ -273,7 +273,7 @@
                 >
                     <span
                         style="margin-right: 0.5rem"
-                        uk-icon="icon: rss; ratio: 0.8"
+                        uk-icon="icon: code; ratio: 0.8"
                     ></span>
                     Bot Settings
                 </button>
@@ -2145,12 +2145,10 @@
                     Moderator Roles
                 </label>
                 <div class="uk-flex uk-flex-middle uk-margin-top">
-                    <input
-                        id="modRoleInput"
-                        class="uk-input uk-width-1-2@m"
-                        type="text"
-                        placeholder="Enter role ID"
-                    />
+                    <select id="modRoleInput" class="uk-select uk-width-1-2@m">
+                        <option value="">Select a role</option>
+                    </select>
+
                     <button
                         id="addModRole"
                         class="uk-button uk-button-primary uk-margin-left"
@@ -2193,46 +2191,71 @@
                 const modRoleInput = document.getElementById("modRoleInput");
                 const addModRoleButton = document.getElementById("addModRole");
                 const modRoleList = document.getElementById("modRoleList");
+                let guildData;
 
                 // Fetch current settings
                 fetch("/api/settings")
                     .then((response) => response.json())
-                    .then((data) => {
-                        settings.moderationSettings = data.moderationSettings;
+                    .then((settingsData) => {
+                        settings.moderationSettings =
+                            settingsData.moderationSettings;
+
+                        // Fetch guild data after settings are fetched
+                        return fetch("/api/guild");
+                    })
+                    .then((response) => response.json())
+                    .then((guildDataResponse) => {
+                        guildData = guildDataResponse.guildData;
+
+                        populateRoleDropdown();
                         renderModRoles();
                         renderCards();
                     })
                     .catch((error) => {
-                        console.error("Error fetching settings:", error);
+                        console.error("Error fetching data:", error);
                         UIkit.notification({
-                            message: "Failed to load moderation settings",
+                            message: "Failed to load data",
                             status: "danger",
                         });
                     });
 
+                function populateRoleDropdown() {
+                    modRoleInput.innerHTML =
+                        '<option value="">Select a role</option>';
+                    guildData.roles.forEach((role) => {
+                        const option = document.createElement("option");
+                        option.value = role.id;
+                        option.textContent = role.name;
+                        modRoleInput.appendChild(option);
+                    });
+                }
+
                 function renderModRoles() {
                     modRoleList.innerHTML = "";
                     settings.moderationSettings.modRoles.forEach((roleId) => {
-                        const roleElement = document.createElement("div");
-                        roleElement.className =
-                            "uk-flex uk-flex-middle uk-margin-small-bottom";
-                        roleElement.innerHTML = `
-                        <span class="uk-margin-small-right">${roleId}</span>
-                        <button class="uk-button uk-button-danger uk-button-small" data-role-id="${roleId}">Remove</button>
-                    `;
-                        modRoleList.appendChild(roleElement);
-                    });
+                        const role = guildData.roles.find(
+                            (r) => r.id === roleId,
+                        );
+                        const roleName = role ? role.name : roleId;
 
-                    // Add event listeners to remove buttons
-                    modRoleList.querySelectorAll("button").forEach((button) => {
-                        button.addEventListener("click", (e) => {
-                            const roleId = e.target.dataset.roleId;
+                        const tagSpan = document.createElement("span");
+                        tagSpan.className =
+                            "uk-tag uk-margin uk-margin-small-right";
+                        tagSpan.innerText = roleName;
+
+                        const tagButton = document.createElement("button");
+                        tagButton.className = "uk-close-small";
+                        tagButton.setAttribute("uk-close", "");
+                        tagButton.addEventListener("click", () => {
                             settings.moderationSettings.modRoles =
                                 settings.moderationSettings.modRoles.filter(
                                     (id) => id !== roleId,
                                 );
                             renderModRoles();
                         });
+
+                        tagSpan.appendChild(tagButton);
+                        modRoleList.appendChild(tagSpan);
                     });
                 }
 
@@ -2254,20 +2277,20 @@
                     card.className = "uk-card uk-card-default uk-card-body";
                     card.style = "height: 8rem;"; // Remove the width and margin
                     card.innerHTML = `
-                        <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
-                            <h3>/${commandName.replace("Command", "")}</h3>
-                            <label>
-                                <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
-                                Enabled
-                            </label>
-                        </div>
-                        <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
-                    `;
+                            <div class="uk-card-title uk-flex uk-flex-between uk-flex-middle">
+                                <h3>/${commandName.replace("Command", "")}</h3>
+                                <label>
+                                    <input class="uk-checkbox" type="checkbox" ${isEnabled ? "checked" : ""} data-command="${commandName}">
+                                    Enabled
+                                </label>
+                            </div>
+                            <p class="uk-text-muted">Description of the ${commandName.replace("Command", "")} command.</p>
+                        `;
                     return card;
                 }
 
                 addModRoleButton.addEventListener("click", () => {
-                    const roleId = modRoleInput.value.trim();
+                    const roleId = modRoleInput.value;
                     if (
                         roleId &&
                         !settings.moderationSettings.modRoles.includes(roleId)
@@ -2321,12 +2344,12 @@
             <div class="uk-card uk-card-default uk-card-body uk-margin">
                 <h3 class="uk-card-title">Ignored Roles</h3>
                 <div class="uk-flex uk-flex-middle uk-margin-top">
-                    <input
-                        class="uk-input uk-width-1-2@m"
-                        type="text"
+                    <select
+                        class="uk-select uk-width-1-2@m"
                         id="ignoredAutoModRoleInput"
-                        placeholder="Role ID"
-                    />
+                    >
+                        <option value="">Select a role</option>
+                    </select>
                     <button
                         class="uk-button uk-button-primary uk-margin-left"
                         id="addIgnoredAutoModRole"
@@ -2334,7 +2357,10 @@
                         Add Role
                     </button>
                 </div>
-                <div id="ignoredAutoModRoleList" class="uk-margin-top"></div>
+                <div
+                    id="ignoredAutoModRoleList"
+                    class="uk-margin-top tag-container"
+                ></div>
             </div>
 
             <div class="uk-grid uk-child-width-1-2@m uk-grid-match" uk-grid>
@@ -2342,12 +2368,12 @@
                     <div class="uk-card uk-card-default uk-card-body">
                         <h3 class="uk-card-title">Ignored Channels</h3>
                         <div class="uk-margin-small">
-                            <input
-                                class="uk-input"
-                                type="text"
+                            <select
+                                class="uk-select"
                                 id="ignoredAutoModChannelInput"
-                                placeholder="Channel ID"
-                            />
+                            >
+                                <option value="">Select a channel</option>
+                            </select>
                             <button
                                 class="uk-button uk-button-primary uk-margin-small-top"
                                 id="addIgnoredAutoModChannel"
@@ -2357,7 +2383,7 @@
                         </div>
                         <div
                             id="ignoredAutoModChannelList"
-                            class="uk-margin-small"
+                            class="uk-margin-small tag-container"
                         ></div>
                     </div>
                 </div>
@@ -2365,12 +2391,12 @@
                     <div class="uk-card uk-card-default uk-card-body">
                         <h3 class="uk-card-title">Media-Only Channels</h3>
                         <div class="uk-margin-small">
-                            <input
-                                class="uk-input"
-                                type="text"
+                            <select
+                                class="uk-select"
                                 id="mediaOnlyChannelInput"
-                                placeholder="Channel ID"
-                            />
+                            >
+                                <option value="">Select a channel</option>
+                            </select>
                             <button
                                 class="uk-button uk-button-primary uk-margin-small-top"
                                 id="addMediaOnlyChannel"
@@ -2380,7 +2406,7 @@
                         </div>
                         <div
                             id="mediaOnlyChannelList"
-                            class="uk-margin-small"
+                            class="uk-margin-small tag-container"
                         ></div>
                     </div>
                 </div>
@@ -2390,12 +2416,12 @@
                             YouTube Link-Only Channels
                         </h3>
                         <div class="uk-margin-small">
-                            <input
-                                class="uk-input"
-                                type="text"
+                            <select
+                                class="uk-select"
                                 id="ytLinkOnlyChannelInput"
-                                placeholder="Channel ID"
-                            />
+                            >
+                                <option value="">Select a channel</option>
+                            </select>
                             <button
                                 class="uk-button uk-button-primary uk-margin-small-top"
                                 id="addYtLinkOnlyChannel"
@@ -2405,7 +2431,7 @@
                         </div>
                         <div
                             id="ytLinkOnlyChannelList"
-                            class="uk-margin-small"
+                            class="uk-margin-small tag-container"
                         ></div>
                     </div>
                 </div>
@@ -2413,12 +2439,12 @@
                     <div class="uk-card uk-card-default uk-card-body">
                         <h3 class="uk-card-title">Twitch Link-Only Channels</h3>
                         <div class="uk-margin-small">
-                            <input
-                                class="uk-input"
-                                type="text"
+                            <select
+                                class="uk-select"
                                 id="ttvLinkOnlyChannelInput"
-                                placeholder="Channel ID"
-                            />
+                            >
+                                <option value="">Select a channel</option>
+                            </select>
                             <button
                                 class="uk-button uk-button-primary uk-margin-small-top"
                                 id="addTtvLinkOnlyChannel"
@@ -2428,7 +2454,7 @@
                         </div>
                         <div
                             id="ttvLinkOnlyChannelList"
-                            class="uk-margin-small"
+                            class="uk-margin-small tag-container"
                         ></div>
                     </div>
                 </div>
@@ -2475,30 +2501,63 @@
             >
                 Save Auto Mod Settings
             </button>
+
             <script>
                 document.addEventListener("DOMContentLoaded", () => {
                     const autoModPage = document.getElementById("automod");
                     const saveAutoModButton = document.getElementById(
                         "saveAutoModSettings",
                     );
+                    let guildData;
 
-                    // Fetch current settings
+                    // Fetch current settings and guild data
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
-                            settings.autoModSettings = data.autoModSettings;
+                        .then((settingsData) => {
+                            settings.autoModSettings =
+                                settingsData.autoModSettings;
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            guildData = fetchedGuildData.guildData;
+                            // Filter text channels
+                            guildData.textChannels = guildData.channels.filter(
+                                (channel) => channel.type === 0,
+                            );
                             renderAutoModSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message:
-                                    "Failed to load auto moderation settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
 
                     function renderAutoModSettings() {
+                        populateDropdown(
+                            "ignoredAutoModRoleInput",
+                            guildData.roles,
+                            true,
+                        );
+                        populateDropdown(
+                            "ignoredAutoModChannelInput",
+                            guildData.textChannels,
+                        );
+                        populateDropdown(
+                            "mediaOnlyChannelInput",
+                            guildData.textChannels,
+                        );
+                        populateDropdown(
+                            "ytLinkOnlyChannelInput",
+                            guildData.textChannels,
+                        );
+                        populateDropdown(
+                            "ttvLinkOnlyChannelInput",
+                            guildData.textChannels,
+                        );
+
                         renderList(
                             "ignoredAutoModRole",
                             settings.autoModSettings.ignoredAutoModRoles,
@@ -2528,38 +2587,70 @@
                             settings.autoModSettings.massMention;
                     }
 
-                    function renderList(type, items) {
-                        const list = document.getElementById(`${type}List`);
-                        list.innerHTML = "";
-                        (items || []).forEach((item) => {
-                            const itemElement = document.createElement("div");
-                            itemElement.className =
-                                "uk-flex uk-flex-middle uk-margin-small-bottom";
-                            itemElement.innerHTML = `
-                            <span class="uk-margin-small-right">${item}</span>
-                            <button class="uk-button uk-button-danger uk-button-small" data-item="${item}" data-type="${type}">Remove</button>
-                        `;
-                            list.appendChild(itemElement);
-                        });
-
-                        // Add event listeners to remove buttons
-                        list.querySelectorAll("button").forEach((button) => {
-                            button.addEventListener("click", (e) => {
-                                const item = e.target.dataset.item;
-                                const type = e.target.dataset.type;
-                                settings.autoModSettings[`${type}s`] =
-                                    settings.autoModSettings[`${type}s`].filter(
-                                        (id) => id !== item,
-                                    );
-                                renderList(
-                                    type,
-                                    settings.autoModSettings[`${type}s`],
-                                );
-                            });
+                    function populateDropdown(id, items, isVoice) {
+                        const dropdown = document.getElementById(id);
+                        if (isVoice) {
+                            dropdown.innerHTML =
+                                '<option value="">Select a role</option>';
+                        } else {
+                            dropdown.innerHTML =
+                                '<option value="">Select a channel</option>';
+                        }
+                        items.forEach((item) => {
+                            const option = document.createElement("option");
+                            option.value = item.id;
+                            if (isVoice) {
+                                option.textContent = item.name;
+                            } else {
+                                option.textContent =
+                                    "#" + item.name + " - " + item.id;
+                            }
+                            dropdown.appendChild(option);
                         });
                     }
 
-                    // Add event listeners for adding items
+                    function renderList(type, items) {
+                        const list = document.getElementById(`${type}List`);
+                        list.innerHTML = "";
+                        (items || []).forEach((itemId) => {
+                            const tagSpan = document.createElement("span");
+                            tagSpan.className =
+                                "uk-tag uk-margin uk-margin-small-right";
+
+                            // Find the corresponding name for the ID
+                            let itemName = itemId;
+                            if (type.includes("Role")) {
+                                const role = guildData.roles.find(
+                                    (r) => r.id === itemId,
+                                );
+                                if (role) itemName = role.name;
+                            } else if (type.includes("Channel")) {
+                                const channel = guildData.textChannels.find(
+                                    (c) => c.id === itemId,
+                                );
+                                if (channel)
+                                    itemName =
+                                        "#" + channel.name + " - " + itemId;
+                            }
+
+                            tagSpan.innerText = itemName;
+
+                            const tagButton = document.createElement("button");
+                            tagButton.className = "uk-close-small";
+                            tagButton.setAttribute("uk-close", "");
+                            tagButton.addEventListener("click", (e) => {
+                                settings.autoModSettings[`${type}s`] =
+                                    settings.autoModSettings[`${type}s`].filter(
+                                        (i) => i !== itemId,
+                                    );
+                                e.target.closest("span").remove();
+                            });
+
+                            tagSpan.appendChild(tagButton);
+                            list.appendChild(tagSpan);
+                        });
+                    }
+
                     [
                         "ignoredAutoModRole",
                         "ignoredAutoModChannel",
@@ -2572,10 +2663,10 @@
                                 `add${type.charAt(0).toUpperCase() + type.slice(1)}`,
                             )
                             .addEventListener("click", () => {
-                                const input = document.getElementById(
+                                const select = document.getElementById(
                                     `${type}Input`,
                                 );
-                                const item = input.value.trim();
+                                const item = select.value;
                                 if (
                                     item &&
                                     !settings.autoModSettings[
@@ -2585,7 +2676,7 @@
                                     settings.autoModSettings[`${type}s`].push(
                                         item,
                                     );
-                                    input.value = "";
+                                    select.value = "";
                                     renderList(
                                         type,
                                         settings.autoModSettings[`${type}s`],
@@ -2601,8 +2692,6 @@
                             document.getElementById("externalLinks").checked;
                         settings.autoModSettings.massMention =
                             document.getElementById("massMention").checked;
-
-                        settings.autoModSettings = settings.autoModSettings;
 
                         fetch("/api/settings", {
                             method: "POST",
@@ -2657,12 +2746,9 @@
                             </label>
                         </div>
                         <div class="uk-margin-small">
-                            <input
-                                class="uk-input"
-                                type="text"
-                                id="joinChannelId"
-                                placeholder="Channel ID"
-                            />
+                            <select class="uk-select" id="joinChannelId">
+                                <option value="">Select a channel</option>
+                            </select>
                         </div>
                         <div class="uk-margin-small">
                             <textarea
@@ -2697,12 +2783,9 @@
                             </label>
                         </div>
                         <div class="uk-margin-small">
-                            <input
-                                class="uk-input"
-                                type="text"
-                                id="leaveChannelId"
-                                placeholder="Channel ID"
-                            />
+                            <select class="uk-select" id="leaveChannelId">
+                                <option value="">Select a channel</option>
+                            </select>
                         </div>
                         <div class="uk-margin-small">
                             <textarea
@@ -2739,23 +2822,59 @@
                     const saveButton = document.getElementById(
                         "saveWelcomeGoodbyeSettings",
                     );
+                    let guildData;
 
                     // Fetch current settings
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
+                        .then((settingsData) => {
                             settings.welcomeGoodbyeSettings =
-                                data.welcomeGoodbyeSettings;
+                                settingsData.welcomeGoodbyeSettings;
+
+                            // Fetch guild data after settings are fetched
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            guildData = fetchedGuildData.guildData;
+
+                            // Filter text channels
+                            guildData.textChannels = guildData.channels.filter(
+                                (channel) => channel.type === 0,
+                            );
+
+                            populateChannelDropdowns();
                             renderWelcomeGoodbyeSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message:
-                                    "Failed to load welcome & goodbye settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
+
+                    function populateChannelDropdowns() {
+                        const joinChannelDropdown =
+                            document.getElementById("joinChannelId");
+                        const leaveChannelDropdown =
+                            document.getElementById("leaveChannelId");
+
+                        [joinChannelDropdown, leaveChannelDropdown].forEach(
+                            (dropdown) => {
+                                dropdown.innerHTML =
+                                    '<option value="">Select a channel</option>';
+                                guildData.textChannels.forEach((channel) => {
+                                    const option =
+                                        document.createElement("option");
+                                    option.value = channel.id;
+                                    option.textContent =
+                                        "#" + channel.name + " - " + channel.id;
+                                    dropdown.appendChild(option);
+                                });
+                            },
+                        );
+                    }
 
                     function renderWelcomeGoodbyeSettings() {
                         const joinSettings =
@@ -2788,9 +2907,9 @@
                                 enabled:
                                     document.getElementById("joinEnabled")
                                         .checked,
-                                channelId: document
-                                    .getElementById("joinChannelId")
-                                    .value.trim(),
+                                channelId:
+                                    document.getElementById("joinChannelId")
+                                        .value,
                                 message: document
                                     .getElementById("joinMessage")
                                     .value.trim(),
@@ -2802,9 +2921,9 @@
                                 enabled:
                                     document.getElementById("leaveEnabled")
                                         .checked,
-                                channelId: document
-                                    .getElementById("leaveChannelId")
-                                    .value.trim(),
+                                channelId:
+                                    document.getElementById("leaveChannelId")
+                                        .value,
                                 message: document
                                     .getElementById("leaveMessage")
                                     .value.trim(),
@@ -2879,20 +2998,29 @@
                     const saveAutoResponderButton = document.getElementById(
                         "saveAutoResponderSettings",
                     );
+                    let textChannels = [];
 
-                    // Fetch current settings
+                    // Fetch current settings and guild data
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
+                        .then((settingsData) => {
                             settings.autoResponderSettings =
-                                data.autoResponderSettings;
+                                settingsData.autoResponderSettings;
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            guildData = fetchedGuildData.guildData;
+
+                            textChannels = guildData.channels.filter(
+                                (channel) => channel.type === 0,
+                            );
                             renderAutoResponderSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message:
-                                    "Failed to load auto responder settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
@@ -2915,18 +3043,34 @@
                         element.className =
                             "uk-card uk-card-default uk-card-body uk-margin";
                         element.innerHTML = `
-                            <h3 class="uk-card-title">Auto Responder: ${key}</h3>
+                            <h3 class="uk-card-title">Auto Responder</h3>
                             <div class="uk-margin-small">
                                 <label class="uk-form-label">Trigger Words</label>
-                                <input class="uk-input" type="text" placeholder="Comma-separated trigger words" value="${Array.isArray(value.triggerWords) ? value.triggerWords.join(", ") : ""}" data-field="triggerWords">
+                                <div class="tag-container" data-field="triggerWords">
+                                   <input class="uk-input tag-input" type="text" placeholder="Press ENTER to add a trigger word">
+                                   ${value.triggerWords.map((word) => `<span class="uk-tag uk-margin uk-margin-small-right">${word}<button class="uk-close-small" uk-close></button></span>`).join("")}
+                                   </div>
                             </div>
                             <div class="uk-margin-small">
-                                <label class="uk-form-label">Responses (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})</label>
-                                <textarea class="uk-textarea" rows="3" placeholder="One response per line" data-field="responses">${Array.isArray(value.responses) ? value.responses.join(", ") : ""}</textarea>
+                                <label class="uk-form-label">Responses</label>
+                                <textarea class="uk-textarea" rows="3" placeholder="One response per line" data-field="responses">${Array.isArray(value.responses) ? value.responses.join("\n") : ""}</textarea>
                             </div>
                             <div class="uk-margin-small">
                                 <label class="uk-form-label">Ignored Channels</label>
-                                <input class="uk-input" type="text" placeholder="Comma-separated channel IDs" value="${Array.isArray(value.ignoredChannels) ? value.ignoredChannels.join(", ") : ""}" data-field="ignoredChannels">
+                                <div class="uk-flex uk-flex-middle">
+                                    <select class="uk-select uk-width-3-4" data-field="channelSelector">
+                                        <option value="">Select a channel</option>
+                                        ${textChannels.map((channel) => `<option value="${channel.id}">#${channel.name} - ${channel.id}</option>`).join("")}
+                                    </select>
+                                    <button class="uk-button uk-button-primary uk-width-1-4" data-action="addChannel">Add Channel</button>
+                                </div>
+                                <div class="uk-margin-small-top" data-field="ignoredChannelList">
+                                    ${updateChannelListHTML(value.ignoredChannels)}
+                                </div>
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Response Chance</label>
+                                <input class="uk-input" type="number" placeholder="Chance of responding (0.0-1.0)" value="${value.chance}" data-field="chance" min="0.0" max="1.0" step="0.01">
                             </div>
                             <div class="uk-margin-small">
                                 <label>
@@ -2944,7 +3088,116 @@
                                 renderAutoResponderSettings();
                             });
 
+                        element
+                            .querySelector("[data-action='addChannel']")
+                            .addEventListener("click", () => {
+                                const channelSelector = element.querySelector(
+                                    "[data-field='channelSelector']",
+                                );
+                                const selectedChannelId = channelSelector.value;
+                                if (
+                                    selectedChannelId &&
+                                    !value.ignoredChannels.includes(
+                                        selectedChannelId,
+                                    )
+                                ) {
+                                    value.ignoredChannels.push(
+                                        selectedChannelId,
+                                    );
+                                    updateChannelList(
+                                        element,
+                                        value.ignoredChannels,
+                                    );
+                                }
+                            });
+
+                        element
+                            .querySelector("[data-field='ignoredChannelList']")
+                            .addEventListener("click", (event) => {
+                                if (event.target.closest(".uk-close-small")) {
+                                    const button =
+                                        event.target.closest(".uk-close-small");
+                                    const channelId =
+                                        button.getAttribute("data-channel-id");
+                                    value.ignoredChannels =
+                                        value.ignoredChannels.filter(
+                                            (id) => id !== channelId,
+                                        );
+                                    updateChannelList(
+                                        element,
+                                        value.ignoredChannels,
+                                    );
+                                }
+                            });
+
+                        // Add tag functionality
+                        const tagContainer =
+                            element.querySelector(".tag-container");
+                        const tagInput = element.querySelector(".tag-input");
+
+                        tagInput.addEventListener("keydown", (e) => {
+                            if (
+                                e.key === "Enter" &&
+                                tagInput.value.trim() !== ""
+                            ) {
+                                const tag = tagInput.value.trim();
+                                value.triggerWords.push(tag);
+                                const tagButton =
+                                    document.createElement("button");
+                                tagButton.className = "uk-close-small";
+                                tagButton.setAttribute("uk-close", "");
+                                tagButton.addEventListener("click", (e) => {
+                                    const tagToRemove =
+                                        e.target.parentNode.textContent.trim();
+                                    value.triggerWords =
+                                        value.triggerWords.filter(
+                                            (word) => word !== tagToRemove,
+                                        );
+                                    e.target.closest("span").remove();
+                                });
+                                const tagSpan = document.createElement("span");
+                                tagSpan.className =
+                                    "uk-tag uk-margin uk-margin-small-right";
+                                tagSpan.innerText = tag;
+                                tagSpan.appendChild(tagButton);
+                                tagContainer.appendChild(tagSpan);
+                                tagInput.value = "";
+                            }
+                        });
+
+                        tagContainer.addEventListener("click", (e) => {
+                            if (e.target.closest(".uk-close-small")) {
+                                const tagToRemove =
+                                    e.target.parentNode.textContent.trim();
+                                value.triggerWords = value.triggerWords.filter(
+                                    (word) => word !== tagToRemove,
+                                );
+                                e.target.closest("span").remove();
+                            }
+                        });
+
                         return element;
+                    }
+
+                    function updateChannelListHTML(ignoredChannels) {
+                        return ignoredChannels
+                            .map((channelId) => {
+                                const channel = guildData.channels.find(
+                                    (c) => c.id === channelId,
+                                );
+                                return channel
+                                    ? `<span class="uk-tag uk-margin-small-right">#${channel.name} - ${channel.id} <button class="uk-close-small" uk-close data-channel-id="${channelId}"></button></span>`
+                                    : "";
+                            })
+                            .join("");
+                    }
+
+                    function updateChannelList(element, ignoredChannels) {
+                        const channelListElement = element.querySelector(
+                            "[data-field='ignoredChannelList']",
+                        );
+                        channelListElement.innerHTML =
+                            updateChannelListHTML(ignoredChannels);
                     }
 
                     addAutoResponderButton.addEventListener("click", () => {
@@ -2953,6 +3206,7 @@
                             triggerWords: [],
                             responses: [],
                             ignoredChannels: [],
+                            chance: 1.0,
                             sendAsReply: false,
                         };
                         renderAutoResponderSettings();
@@ -2961,27 +3215,33 @@
                     saveAutoResponderButton.addEventListener("click", () => {
                         const autoResponders =
                             autoResponderList.querySelectorAll(".uk-card");
-                        settings.autoResponderSettings = {};
 
                         autoResponders.forEach((responder, index) => {
                             const key = `autoResponder${index + 1}`;
                             settings.autoResponderSettings[key] = {
-                                triggerWords: responder
-                                    .querySelector(
-                                        "[data-field='triggerWords']",
+                                triggerWords: Array.from(
+                                    responder.querySelector(".tag-container")
+                                        .children,
+                                )
+                                    .map((tag) =>
+                                        tag.textContent.trim().replace(/×/, ""),
                                     )
-                                    .value.split(",")
-                                    .map((word) => word.trim()),
+                                    .filter((word) => word !== ""), // Filter out empty strings
                                 responses: responder
                                     .querySelector("[data-field='responses']")
                                     .value.split("\n")
-                                    .map((response) => response.trim()),
-                                ignoredChannels: responder
-                                    .querySelector(
-                                        "[data-field='ignoredChannels']",
-                                    )
-                                    .value.split(",")
-                                    .map((channel) => channel.trim()),
+                                    .map((response) => response.trim())
+                                    .filter((word) => word !== ""),
+                                ignoredChannels: Array.from(
+                                    responder.querySelectorAll(
+                                        "[data-field='ignoredChannelList'] .uk-tag button",
+                                    ),
+                                ).map((button) =>
+                                    button.getAttribute("data-channel-id"),
+                                ),
+                                chance: responder.querySelector(
+                                    "[data-field='chance']",
+                                ).value,
                                 sendAsReply: responder.querySelector(
                                     "[data-field='sendAsReply']",
                                 ).checked,
@@ -3026,14 +3286,14 @@
             <div class="uk-card uk-card-default uk-card-body uk-margin">
                 <h3 class="uk-card-title">Roles for New Members</h3>
                 <div class="uk-flex uk-flex-middle uk-margin-top">
-                    <input
-                        class="uk-input uk-width-1-2@m"
-                        type="text"
-                        id="autoRoleInput"
-                        placeholder="Role ID"
-                    />
+                    <select
+                        class="uk-select uk-width-3-4"
+                        id="autoRoleSelector"
+                    >
+                        <option value="">Select a role</option>
+                    </select>
                     <button
-                        class="uk-button uk-button-primary uk-margin-left"
+                        class="uk-button uk-button-primary uk-width-1-4"
                         id="addAutoRole"
                     >
                         Add Role
@@ -3058,62 +3318,89 @@
                     );
                     const addAutoRoleButton =
                         document.getElementById("addAutoRole");
-                    const autoRoleInput =
-                        document.getElementById("autoRoleInput");
+                    const autoRoleSelector =
+                        document.getElementById("autoRoleSelector");
                     const autoRoleList =
                         document.getElementById("autoRoleList");
+                    let guildData;
 
-                    // Fetch current settings
+                    // Fetch current settings and guild data
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
-                            settings.autoRoleSettings = data.autoRoleSettings;
+                        .then((settingsData) => {
+                            settings.autoRoleSettings =
+                                settingsData.autoRoleSettings;
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            guildData = fetchedGuildData.guildData;
+                            populateRoleSelector();
                             renderAutoRoleSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message: "Failed to load auto role settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
 
+                    function populateRoleSelector() {
+                        autoRoleSelector.innerHTML =
+                            '<option value="">Select a role</option>';
+                        guildData.roles.forEach((role) => {
+                            const option = document.createElement("option");
+                            option.value = role.id;
+                            option.textContent = role.name;
+                            autoRoleSelector.appendChild(option);
+                        });
+                    }
+
                     function renderAutoRoleSettings() {
                         autoRoleList.innerHTML = "";
                         settings.autoRoleSettings.roles.forEach((roleId) => {
-                            const roleElement = document.createElement("div");
-                            roleElement.className =
-                                "uk-flex uk-flex-middle uk-margin-small-bottom";
-                            roleElement.innerHTML = `
-                                <span class="uk-margin-small-right">${roleId}</span>
-                                <button class="uk-button uk-button-danger uk-button-small" data-role-id="${roleId}">Remove</button>
-                            `;
-                            autoRoleList.appendChild(roleElement);
+                            const role = guildData.roles.find(
+                                (r) => r.id === roleId,
+                            );
+                            if (role) {
+                                const roleElement =
+                                    document.createElement("span");
+                                roleElement.className =
+                                    "uk-tag uk-margin-small-right";
+                                roleElement.innerHTML = `
+                                    ${role.name}
+                                    <button class="uk-close-small" uk-close data-role-id="${roleId}"></button>
+                                `;
+                                autoRoleList.appendChild(roleElement);
+                            }
                         });
-
-                        // Add event listeners to remove buttons
-                        autoRoleList
-                            .querySelectorAll("button")
-                            .forEach((button) => {
-                                button.addEventListener("click", (e) => {
-                                    const roleId = e.target.dataset.roleId;
-                                    settings.autoRoleSettings.roles =
-                                        settings.autoRoleSettings.roles.filter(
-                                            (id) => id !== roleId,
-                                        );
-                                    renderAutoRoleSettings();
-                                });
-                            });
                     }
 
                     addAutoRoleButton.addEventListener("click", () => {
-                        const roleId = autoRoleInput.value.trim();
+                        const selectedRoleId = autoRoleSelector.value;
                         if (
-                            roleId &&
-                            !settings.autoRoleSettings.roles.includes(roleId)
+                            selectedRoleId &&
+                            !settings.autoRoleSettings.roles.includes(
+                                selectedRoleId,
+                            )
                         ) {
-                            settings.autoRoleSettings.roles.push(roleId);
-                            autoRoleInput.value = "";
+                            settings.autoRoleSettings.roles.push(
+                                selectedRoleId,
+                            );
+                            renderAutoRoleSettings();
+                        }
+                    });
+
+                    autoRoleList.addEventListener("click", (event) => {
+                        if (event.target.closest(".uk-close-small")) {
+                            const button =
+                                event.target.closest(".uk-close-small");
+                            const roleId = button.getAttribute("data-role-id");
+                            settings.autoRoleSettings.roles =
+                                settings.autoRoleSettings.roles.filter(
+                                    (id) => id !== roleId,
+                                );
                             renderAutoRoleSettings();
                         }
                     });
@@ -3317,16 +3604,24 @@
                     // Fetch current settings
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
+                        .then((settingsData) => {
                             settings.temporaryChannelSettings =
-                                data.temporaryChannelSettings;
+                                settingsData.temporaryChannelSettings;
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            guildData = fetchedGuildData.guildData;
+                            // Filter voice channels
+                            guildData.voiceChannels = guildData.channels.filter(
+                                (channel) => channel.type === 2,
+                            );
                             renderTemporaryChannelSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message:
-                                    "Failed to load temporary channel settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
@@ -3349,22 +3644,28 @@
                         element.className =
                             "uk-card uk-card-default uk-card-body uk-margin";
                         element.innerHTML = `
-                            <h3 class="uk-card-title">Temporary Channel: ${key}</h3>
+                            <h3 class="uk-card-title">Temporary Channel:</h3>
                             <div class="uk-margin-small">
-                                <label class="uk-form-label">Trigger Channel ID</label>
-                                <input class="uk-input" type="text" placeholder="Trigger Channel ID" value="${value.triggerChannel}" data-field="triggerChannel">
+                                <label class="uk-form-label">Trigger Channel</label>
+                                <select class="uk-select" data-field="triggerChannel">
+                                    <option value="">Select a voice channel</option>
+                                    ${guildData.voiceChannels.map((channel) => `<option value="${channel.id}" ${value.triggerChannel === channel.id ? "selected" : ""}>${channel.name} - ${channel.id}</option>`).join("")}
+                                </select>
                             </div>
                             <div class="uk-margin-small">
-                                <label class="uk-form-label">Category ID</label>
-                                <input class="uk-input" type="text" placeholder="Category ID" value="${value.category}" data-field="category">
+                                <label class="uk-form-label">Category</label>
+                                <select class="uk-select" data-field="category">
+                                    <option value="">Select a category</option>
+                                    ${guildData.categories.map((category) => `<option value="${category.id}" ${value.category === category.id ? "selected" : ""}>${category.name} - ${category.id}</option>`).join("")}
+                                </select>
                             </div>
                             <div class="uk-margin-small">
                                 <label class="uk-form-label">Max Users (0 for unlimited)</label>
                                 <input class="uk-input" type="number" placeholder="Max Users" value="${value.maxUsers}" data-field="maxUsers">
                             </div>
                             <div class="uk-margin-small">
-                                <label class="uk-form-label">Channel Name (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})</label>
-                                <input class="uk-input" type="text" placeholder="Channel Name" value="${value.channelName}" data-field="channelName">
+                                <label class="uk-form-label">Temporary Channel Name (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})</label>
+                                <input class="uk-input" type="text" placeholder="Temporary Channel Name" value="${value.channelName}" data-field="channelName">
                             </div>
                             <button class="uk-button uk-button-danger uk-button-small" data-action="remove">Remove</button>
                         `;
@@ -3398,14 +3699,12 @@
                         temporaryChannels.forEach((channel, index) => {
                             const key = `tempChannel${index + 1}`;
                             settings.temporaryChannelSettings[key] = {
-                                triggerChannel: channel
-                                    .querySelector(
-                                        "[data-field='triggerChannel']",
-                                    )
-                                    .value.trim(),
-                                category: channel
-                                    .querySelector("[data-field='category']")
-                                    .value.trim(),
+                                triggerChannel: channel.querySelector(
+                                    "[data-field='triggerChannel']",
+                                ).value,
+                                category: channel.querySelector(
+                                    "[data-field='category']",
+                                ).value,
                                 maxUsers:
                                     parseInt(
                                         channel.querySelector(
@@ -3470,12 +3769,9 @@
             <div class="uk-card uk-card-default uk-card-body uk-margin">
                 <h3 class="uk-card-title">Ignored Channels</h3>
                 <div class="uk-margin-small">
-                    <input
-                        class="uk-input"
-                        type="text"
-                        id="ignoredAIChannelInput"
-                        placeholder="Channel ID"
-                    />
+                    <select class="uk-select" id="ignoredAIChannelInput">
+                        <option value="">Select a channel</option>
+                    </select>
                     <button
                         class="uk-button uk-button-primary uk-margin-small-top"
                         id="addIgnoredAIChannel"
@@ -3549,21 +3845,51 @@
                         document.getElementById("ai-settings");
                     const saveButton =
                         document.getElementById("saveAiSettings");
+                    let guildData;
 
                     // Fetch current settings
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
-                            settings.aiSettings = data.aiSettings;
+                        .then((settingsData) => {
+                            settings.aiSettings = settingsData.aiSettings;
+
+                            // Fetch guild data after settings are fetched
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((guildDataResponse) => {
+                            guildData = guildDataResponse.guildData;
+
+                            // Filter text channels
+                            guildData.textChannels = guildData.channels.filter(
+                                (channel) => channel.type === 0,
+                            );
+
+                            populateChannelDropdown();
                             renderAiSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message: "Failed to load AI settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
+
+                    function populateChannelDropdown() {
+                        const dropdown = document.getElementById(
+                            "ignoredAIChannelInput",
+                        );
+                        dropdown.innerHTML =
+                            '<option value="">Select a channel</option>';
+                        guildData.textChannels.forEach((channel) => {
+                            const option = document.createElement("option");
+                            option.value = channel.id;
+                            option.textContent =
+                                "#" + channel.name + " - " + channel.id;
+                            dropdown.appendChild(option);
+                        });
+                    }
 
                     function renderAiSettings() {
                         document.getElementById("aiEnabled").checked =
@@ -3587,28 +3913,25 @@
                         list.innerHTML = "";
                         if (Array.isArray(items)) {
                             items.forEach((item) => {
-                                const itemElement =
-                                    document.createElement("div");
-                                itemElement.className =
-                                    "uk-flex uk-flex-middle uk-margin-small-bottom";
-                                itemElement.innerHTML = `
-                                <span class="uk-margin-small-right">${item}</span>
-                                <button class="uk-button uk-button-danger uk-button-small" data-item="${item}" data-type="${type}">Remove</button>
-                            `;
-                                list.appendChild(itemElement);
-                            });
-                        }
+                                const tagSpan = document.createElement("span");
+                                tagSpan.className =
+                                    "uk-tag uk-margin uk-margin-small-right";
 
-                        // Add event listeners to remove buttons
-                        list.querySelectorAll("button").forEach((button) => {
-                            button.addEventListener("click", (e) => {
-                                const item = e.target.dataset.item;
-                                const type = e.target.dataset.type;
-                                if (
-                                    Array.isArray(
-                                        settings.aiSettings[`${type}s`],
-                                    )
-                                ) {
+                                let itemName = item;
+                                if (type === "ignoredAIChannel") {
+                                    const channel = guildData.textChannels.find(
+                                        (c) => c.id === item,
+                                    );
+                                    if (channel) itemName = "#" + channel.name;
+                                }
+
+                                tagSpan.innerText = itemName;
+
+                                const tagButton =
+                                    document.createElement("button");
+                                tagButton.className = "uk-close-small";
+                                tagButton.setAttribute("uk-close", "");
+                                tagButton.addEventListener("click", () => {
                                     settings.aiSettings[`${type}s`] =
                                         settings.aiSettings[`${type}s`].filter(
                                             (id) => id !== item,
@@ -3617,9 +3940,12 @@
                                         type,
                                         settings.aiSettings[`${type}s`],
                                     );
-                                }
+                                });
+
+                                tagSpan.appendChild(tagButton);
+                                list.appendChild(tagSpan);
                             });
-                        });
+                        }
                     }
 
                     // Add event listeners for adding items
@@ -3729,19 +4055,28 @@
                     const saveSocialAlertButton = document.getElementById(
                         "saveSocialAlertSettings",
                     );
+                    let guildData;
 
-                    // Fetch current settings
+                    // Fetch current settings and guild data
                     fetch("/api/settings")
                         .then((response) => response.json())
-                        .then((data) => {
+                        .then((settingsData) => {
                             settings.socialAlertSettings =
-                                data.socialAlertSettings;
+                                settingsData.socialAlertSettings;
+                            return fetch("/api/guild");
+                        })
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            guildData = fetchedGuildData.guildData;
+                            textChannels = guildData.channels.filter(
+                                (channel) => channel.type === 0,
+                            );
                             renderSocialAlertSettings();
                         })
                         .catch((error) => {
-                            console.error("Error fetching settings:", error);
+                            console.error("Error fetching data:", error);
                             UIkit.notification({
-                                message: "Failed to load social alert settings",
+                                message: "Failed to load data",
                                 status: "danger",
                             });
                         });
@@ -3761,33 +4096,56 @@
                         const element = document.createElement("div");
                         element.className =
                             "uk-card uk-card-default uk-card-body uk-margin";
+                        element.dataset.socialAlertKey = key;
                         element.innerHTML = `
-                                <h3 class="uk-card-title">Social Alert: ${key}</h3>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">Channel ID / Username</label>
-                                    <input class="uk-input" type="text" placeholder="Channel ID or Username" value="${value.channelId || ""}" data-field="channelId">
-                                </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">Type</label>
-                                    <select class="uk-select" data-field="type">
-                                        <option value="twitch" ${value.type === "twitch" ? "selected" : ""}>Twitch</option>
-                                        <option value="youtube" ${value.type === "youtube" ? "selected" : ""}>YouTube</option>
+                            <h3 class="uk-card-title">Social Alert</h3>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Social ID (Twitch/YouTube)</label>
+                                <input class="uk-input" type="text" placeholder="Youtube Channel ID or Twitch Username" value="${value.socialId || ""}" data-field="socialId">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Display Name (Must match Youtube Channel Name for the API, does not matter for Twitch)</label>
+                                <input class="uk-input" type="text" placeholder="Youtube Channel ID or Twitch Username" value="${value.socialName || ""}" data-field="socialName">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Channel to Send Alert</label>
+                                <div class="uk-flex uk-flex-middle">
+                                    <select class="uk-select uk-width-3-4" data-field="channelSelector">
+                                        <option value="">Select a channel</option>
+                                        ${textChannels.map((channel) => `<option value="${channel.id}" ${value.channelId === channel.id ? "selected" : ""}>#${channel.name} - ${channel.id}</option>`).join("")}
                                     </select>
                                 </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">Message</label>
-                                    <textarea class="uk-textarea" rows="3" placeholder="Message to include in embed" data-field="message">${value.message || ""}</textarea>
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Type</label>
+                                <select class="uk-select" data-field="type">
+                                    <option value="twitch" ${value.type === "twitch" ? "selected" : ""}>Twitch</option>
+                                    <option value="youtube" ${value.type === "youtube" ? "selected" : ""}>YouTube</option>
+                                </select>
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Message (Supports Placeholders: {author}, {uploadedANewVideoOrStartedStreaming})</label>
+                                <textarea class="uk-textarea" rows="3" placeholder="Message to include in embed" data-field="message">${value.message || ""}</textarea>
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Whitelist Title Words</label>
+                                <input class="uk-input" type="text" placeholder="Comma-separated words, leave empty to disable" value="${Array.isArray(value.whitelistTitleWords) ? value.whitelistTitleWords.join(", ") : ""}" data-field="whitelistTitleWords">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Roles to Mention</label>
+                                <div class="uk-flex uk-flex-middle">
+                                    <select class="uk-select uk-width-3-4" data-field="roleSelector">
+                                        <option value="">Select a role</option>
+                                        ${guildData.roles.map((role) => `<option value="${role.id}">${role.name}</option>`).join("")}
+                                    </select>
+                                    <button class="uk-button uk-button-primary uk-width-1-4" data-action="addRole">Add Role</button>
                                 </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">Whitelist Title Words</label>
-                                    <input class="uk-input" type="text" placeholder="Comma-separated words" value="${Array.isArray(value.whitelistTitleWords) ? value.whitelistTitleWords.join(", ") : ""}" data-field="whitelistTitleWords">
+                                <div class="uk-margin-small-top" data-field="roleList">
+                                    ${updateRoleListHTML(value.rolesToMention)}
                                 </div>
-                                <div class="uk-margin-small">
-                                    <label class="uk-form-label">Roles to Mention</label>
-                                    <input class="uk-input" type="text" placeholder="Comma-separated role IDs" value="${Array.isArray(value.rolesToMention) ? value.rolesToMention.join(", ") : ""}" data-field="rolesToMention">
-                                </div>
-                                <button class="uk-button uk-button-danger uk-button-small" data-action="remove">Remove</button>
-                            `;
+                            </div>
+                            <button class="uk-button uk-button-danger uk-button-small" data-action="remove">Remove</button>
+                        `;
 
                         element
                             .querySelector("[data-action='remove']")
@@ -3796,12 +4154,82 @@
                                 renderSocialAlertSettings();
                             });
 
+                        element
+                            .querySelector("[data-action='addRole']")
+                            .addEventListener("click", () => {
+                                const roleSelector = element.querySelector(
+                                    "[data-field='roleSelector']",
+                                );
+                                const selectedRoleId = roleSelector.value;
+                                if (selectedRoleId) {
+                                    const selectedRole = guildData.roles.find(
+                                        (role) => role.id === selectedRoleId,
+                                    );
+                                    if (
+                                        selectedRole &&
+                                        !value.rolesToMention.includes(
+                                            selectedRoleId,
+                                        )
+                                    ) {
+                                        value.rolesToMention.push(
+                                            selectedRoleId,
+                                        );
+                                        updateRoleList(
+                                            element,
+                                            value.rolesToMention,
+                                        );
+                                    }
+                                }
+                            });
+
+                        element
+                            .querySelector("[data-field='roleList']")
+                            .addEventListener("click", (event) => {
+                                if (event.target.closest(".uk-close-small")) {
+                                    const button =
+                                        event.target.closest(".uk-close-small");
+                                    const roleId =
+                                        button.getAttribute("data-role-id");
+                                    value.rolesToMention =
+                                        value.rolesToMention.filter(
+                                            (id) => id !== roleId,
+                                        );
+                                    updateRoleList(
+                                        element,
+                                        value.rolesToMention,
+                                    );
+                                }
+                            });
+
                         return element;
+                    }
+
+                    function updateRoleListHTML(rolesToMention) {
+                        return rolesToMention
+                            .map((roleId) => {
+                                const role = guildData.roles.find(
+                                    (r) => r.id === roleId,
+                                );
+                                return role
+                                    ? `<span class="uk-tag uk-margin-small-right">${role.name} <button class="uk-close-small" uk-close data-role-id="${roleId}"></button></span>`
+                                    : "";
+                            })
+                            .join("");
+                    }
+
+                    function updateRoleList(element, rolesToMention) {
+                        const roleListElement = element.querySelector(
+                            "[data-field='roleList']",
+                        );
+                        roleListElement.innerHTML =
+                            updateRoleListHTML(rolesToMention);
                     }
 
                     addSocialAlertButton.addEventListener("click", () => {
                         const newKey = `socialAlert${Object.keys(settings.socialAlertSettings).length + 1}`;
                         settings.socialAlertSettings[newKey] = {
+                            socialId: "",
+                            socialName: "",
                             channelId: "",
                             type: "twitch",
                             message: "",
@@ -3814,14 +4242,19 @@
                     saveSocialAlertButton.addEventListener("click", () => {
                         const socialAlerts =
                             socialAlertList.querySelectorAll(".uk-card");
-                        settings.socialAlertSettings = {};
 
                         socialAlerts.forEach((alert, index) => {
                             const key = `socialAlert${index + 1}`;
                             settings.socialAlertSettings[key] = {
-                                channelId: alert
-                                    .querySelector("[data-field='channelId']")
+                                socialId: alert
+                                    .querySelector("[data-field='socialId']")
                                     .value.trim(),
+                                socialName: alert
+                                    .querySelector("[data-field='socialName']")
+                                    .value.trim(),
+                                channelId: alert.querySelector(
+                                    "[data-field='channelSelector']",
+                                ).value,
                                 type: alert.querySelector("[data-field='type']")
                                     .value,
                                 message: alert
@@ -3834,13 +4267,13 @@
                                     .value.split(",")
                                     .map((word) => word.trim())
                                     .filter((word) => word !== ""),
-                                rolesToMention: alert
-                                    .querySelector(
-                                        "[data-field='rolesToMention']",
-                                    )
-                                    .value.split(",")
-                                    .map((role) => role.trim())
-                                    .filter((role) => role !== ""),
+                                rolesToMention: Array.from(
+                                    alert.querySelectorAll(
+                                        "[data-field='roleList'] .uk-tag button",
+                                    ),
+                                ).map((button) =>
+                                    button.getAttribute("data-role-id"),
+                                ),
                             };
                         });
 
@@ -3988,16 +4421,18 @@
             </div>
 
             <div class="uk-card uk-card-default uk-card-body uk-margin">
-                <h3 class="uk-card-title">Activites</h3>
+                <h3 class="uk-card-title">Activities</h3>
                 <div class="uk-margin-small">
                     <label>
                         Activity Type:
-                        <input
-                            class="uk-input"
-                            type="text"
-                            id="activityTypeInput"
-                            placeholder="Enter activity type (e.g., PLAYING)"
-                        />
+                        <select id="activityTypeSelect" class="uk-select">
+                            <option value="0">Playing</option>
+                            <option value="1">Streaming</option>
+                            <option value="2">Listening</option>
+                            <option value="3">Watching</option>
+                            <option value="4">Custom</option>
+                            <option value="5">Competing</option>
+                        </select>
                     </label>
                 </div>
                 <div class="uk-margin-small">
@@ -4089,24 +4524,30 @@
                         activities.forEach((activity) => {
                             const activityElement =
                                 document.createElement("div");
+                            strActivity =
+                                activity.type.charAt(0).toUpperCase() +
+                                activity.type.slice(1).toLowerCase();
                             activityElement.className =
                                 "uk-flex uk-flex-middle uk-margin-small-bottom";
                             activityElement.innerHTML = `
-                                    <span class="uk-margin-small-right">${activity.type} ${activity.name}</span>
-                                    <button class="uk-button uk-button-danger uk-button-small" data-type="${activity.type}" data-name="${activity.name}">Remove</button>
-                                `;
+                                <span class="uk-margin-small-right">${strActivity} ${activity.name}</span>
+                                <button class="uk-button uk-button-danger uk-button-small" data-type="${activity.type}" data-name="${activity.name}">Remove</button>
+                            `;
                             activitiesList.appendChild(activityElement);
                         });
                     }
 
                     // Event listener for adding new activity
                     addActivityButton.addEventListener("click", () => {
-                        const typeInput =
-                            document.getElementById("activityTypeInput");
+                        const typeSelect =
+                            document.getElementById("activityTypeSelect");
                         const nameInput =
                             document.getElementById("activityNameInput");
 
-                        const type = typeInput.value.trim().toUpperCase();
+                        const type =
+                            typeSelect.options[
+                                typeSelect.selectedIndex
+                            ].text.toUpperCase();
                         const name = nameInput.value.trim();
 
                         if (type && name) {
@@ -4119,7 +4560,7 @@
                             );
 
                             // Clear input fields after adding activity
-                            typeInput.value = "";
+                            typeSelect.value = "";
                             nameInput.value = "";
                         }
                     });
@@ -4127,10 +4568,13 @@
                     // Function to create activity element
                     function createActivityElement(activity) {
                         const activityElement = document.createElement("div");
+                        strActivity =
+                            activity.name.charAt(0).toUpperCase() +
+                            activity.name.slice(1).toLowerCase();
                         activityElement.className =
                             "uk-flex uk-flex-middle uk-margin-small-bottom";
                         activityElement.innerHTML = `
-                            <span class="uk-margin-small-right">${activity.type} ${activity.name}</span>
+                            <span class="uk-margin-small-right">${strActivity} ${activity.name}</span>
                             <button class="uk-button uk-button-danger uk-button-small" data-type="${activity.type}" data-name="${activity.name}">Remove</button>
                         `;
                         return activityElement;
@@ -4192,6 +4636,7 @@
                 });
             </script>
         </div>
+
         <div id="mod-actions" class="page uk-background-secondary">
             <div class="uk-container uk-margin-top">
                 <table class="uk-table uk-table-hover">
