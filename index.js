@@ -250,8 +250,15 @@ function setupEventListeners() {
     const aiSettings = db.get("settings").aiSettings;
     if (aiSettings.ignoredChannels.includes(message.channelId)) return;
 
+    // Check if the message mentions the bot
+    if (message.mentions.has(client.user)) {
+      const response = await chatBot.generateResponse(message);
+      await message.reply(formatPlaceholders(response, message.member));
+      responded = true; // Mark as responded by the chatbot
+    }
+
     // Check if the message is a reply to a bot message
-    if (message.reference && message.reference.messageId) {
+    if (!responded && message.reference && message.reference.messageId) {
       try {
         const repliedMessage = await message.channel.messages.fetch(
           message.reference.messageId,
