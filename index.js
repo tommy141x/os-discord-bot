@@ -32,6 +32,19 @@ const AIChatBot = require("./utils/aiChatBot");
 const app = express();
 const port = process.env.PORT || 3000;
 
+const publicDir = path.join(__dirname, "public");
+const mediaDir = path.join(publicDir, "media");
+const sessionDir = path.join(__dirname, "sessions");
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir);
+}
+if (!fs.existsSync(mediaDir)) {
+  fs.mkdirSync(mediaDir);
+}
+if (!fs.existsSync(sessionDir)) {
+  fs.mkdirSync(sessionDir);
+}
+
 // Middleware setup
 app.use(
   session({
@@ -57,15 +70,6 @@ app.use(
   }),
 );
 app.use(express.json());
-
-const publicDir = path.join(__dirname, "public");
-const mediaDir = path.join(publicDir, "media");
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir);
-}
-if (!fs.existsSync(mediaDir)) {
-  fs.mkdirSync(mediaDir);
-}
 
 // Initialize Discord client
 const client = new Client({

@@ -2531,7 +2531,7 @@
                     function renderList(type, items) {
                         const list = document.getElementById(`${type}List`);
                         list.innerHTML = "";
-                        items.forEach((item) => {
+                        (items || []).forEach((item) => {
                             const itemElement = document.createElement("div");
                             itemElement.className =
                                 "uk-flex uk-flex-middle uk-margin-small-bottom";
@@ -3901,32 +3901,39 @@
                                 document.getElementById("logs-table-body");
                             tableBody.innerHTML = ""; // Clear existing content
 
-                            data.controlLogs.sort(
-                                (a, b) =>
-                                    new Date(b.timestamp) -
-                                    new Date(a.timestamp),
-                            );
-
-                            data.controlLogs.forEach((log) => {
-                                const row = document.createElement("tr");
-
-                                const actionCell = document.createElement("td");
-                                actionCell.innerHTML = `
-                                <div class="text-foreground" style="font-weight: bold">${log.user} ${log.message}.</div>
-                                <div class="uk-text-muted">${log.email} - (${log.id})</div>
-                            `;
-
-                                const timeCell = document.createElement("td");
-                                timeCell.className =
-                                    "uk-text-right text-foreground";
-                                timeCell.textContent = formatTimestamp(
-                                    log.timestamp,
+                            if (
+                                data.controlLogs &&
+                                data.controlLogs.length > 0
+                            ) {
+                                data.controlLogs.sort(
+                                    (a, b) =>
+                                        new Date(b.timestamp) -
+                                        new Date(a.timestamp),
                                 );
 
-                                row.appendChild(actionCell);
-                                row.appendChild(timeCell);
-                                tableBody.appendChild(row);
-                            });
+                                data.controlLogs.forEach((log) => {
+                                    const row = document.createElement("tr");
+
+                                    const actionCell =
+                                        document.createElement("td");
+                                    actionCell.innerHTML = `
+                                  <div class="text-foreground" style="font-weight: bold">${log.user} ${log.message}.</div>
+                                  <div class="uk-text-muted">${log.email} - (${log.id})</div>
+                              `;
+
+                                    const timeCell =
+                                        document.createElement("td");
+                                    timeCell.className =
+                                        "uk-text-right text-foreground";
+                                    timeCell.textContent = formatTimestamp(
+                                        log.timestamp,
+                                    );
+
+                                    row.appendChild(actionCell);
+                                    row.appendChild(timeCell);
+                                    tableBody.appendChild(row);
+                                });
+                            }
                         })
                         .catch((error) =>
                             console.error(
