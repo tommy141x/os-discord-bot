@@ -12,6 +12,8 @@ const {
   ChannelType,
   AuditLogEvent,
   GuildSystemChannelFlags,
+  EmbedBuilder,
+  PermissionsBitField,
 } = require("discord.js");
 const path = require("path");
 const fs = require("fs");
@@ -76,6 +78,7 @@ app.use((req, res, next) => {
 // Discord bot login
 client.login(config.botToken);
 
+let botPresenceInterval;
 // Bot ready event handler
 client.once("ready", async () => {
   console.log("Discord bot is started!");
@@ -93,6 +96,12 @@ client.once("ready", async () => {
     chatBot = new AIChatBot(client);
     await chatBot.initialize();
   }
+
+  setBotPresence();
+  botPresenceInterval = setInterval(
+    setBotPresence,
+    settings.botPresenceSettings.changeInterval * 60 * 1000,
+  );
 
   // Set up event listeners
   setupEventListeners();
@@ -161,8 +170,8 @@ function getDefaultSettings() {
       clearCommand: true,
     },
     autoModSettings: {
-      ignoredRoles: [],
-      ignoredChannels: [],
+      ignoredAutoModRoles: [],
+      ignoredAutoModChannels: [],
       mediaOnlyChannels: [],
       ytLinkOnlyChannels: [],
       ttvLinkOnlyChannels: [],
@@ -184,14 +193,7 @@ function getDefaultSettings() {
         color: "",
       },
     },
-    autoResponderSettings: {
-      exampleItem: {
-        triggerWords: [],
-        responses: [],
-        ignoredChannels: [],
-        sendAsReply: false,
-      },
-    },
+    autoResponderSettings: {},
     aiSettings: {
       enabled: false,
       ignoredChannels: [],
@@ -202,21 +204,21 @@ function getDefaultSettings() {
     autoRoleSettings: {
       roles: [], //Roles to give to new members
     },
-    temporaryChannelSettings: {
-      exampleItem: {
-        triggerChannel: "", // Channel ID
-        category: "", // Category ID
-        maxUsers: 0, // 0 for unlimited
-        channelName: "", // Supports placeholders
-      },
-    },
-    socialAlertSettings: {
-      /*exampleItem: {
-        channelId: "", // could be a twitch username or youtube username / channel id
-        type: "", // twitch or youtube
-        message: "", // message to include in embed
-        rolesToMention: [], // roles to mention
-      },*/
+    temporaryChannelSettings: {},
+    socialAlertSettings: {},
+    botPresenceSettings: {
+      status: "online",
+      activities: [
+        {
+          type: "PLAYING",
+          name: "with the API",
+        },
+        {
+          type: "WATCHING",
+          name: "over the server",
+        },
+      ],
+      changeInterval: 1, //in minutes
     },
   };
 }
@@ -231,11 +233,49 @@ function setupEventListeners() {
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
-    if (chatBot && chatBot.shouldRespond(message)) {
+    let responded = false;
+
+    const aiSettings = db.get("settings").aiSettings;
+    if (aiSettings.ignoredChannels.includes(message.channelId)) return;
+
+    // Check if the message is a reply to a bot message
+    if (message.reference && message.reference.messageId) {
+      try {
+        const repliedMessage = await message.channel.messages.fetch(
+          message.reference.messageId,
+        );
+
+        if (repliedMessage && repliedMessage.author.bot) {
+          const repliedContent = repliedMessage.content;
+
+          // Trigger the chatbot with both the replied message content and the new message content
+          message.content = `I am responding to your previous message "${repliedContent}", ${message.content}`;
+
+          const response = await chatBot.generateResponse(message);
+
+          // Reply with the chatbot's response
+          await message.reply(formatPlaceholders(response, message.member));
+
+          responded = true; // Mark as responded by the chatbot
+        }
+      } catch (error) {
+        console.error("Error fetching or processing replied message:", error);
+      }
+    }
+
+    // If the chatbot hasn't responded yet, check if it should respond to the current message
+    if (!responded && chatBot && chatBot.shouldRespond(message)) {
       const response = await chatBot.generateResponse(message);
-      message.reply(response);
+      await message.reply(formatPlaceholders(response, message.member));
+      responded = true; // Mark as responded by the chatbot
+    }
+
+    // If the chatbot still hasn't responded, trigger the autoResponder
+    if (!responded) {
+      autoResponder(message);
     }
   });
+
   client.on("guildMemberAdd", async (member) => {
     await applyAutoRoles(member);
   });
@@ -247,6 +287,42 @@ function setupEventListeners() {
     console.log("Disconnected. Attempting to reconnect...");
     client.login(config.botToken);
   });
+}
+
+function setBotPresence() {
+  const botPresenceSettings = db.get("settings").botPresenceSettings;
+  if (botPresenceSettings.activities.length === 0) {
+    client.user.setPresence({
+      status: botPresenceSettings.status,
+      activities: [],
+    });
+  } else {
+    const activityType = {
+      playing: 0,
+      streaming: 1,
+      listening: 2,
+      watching: 3,
+      custom: 4,
+      competing: 5,
+    };
+    const activity =
+      botPresenceSettings.activities[
+        Math.floor(Math.random() * botPresenceSettings.activities.length)
+      ];
+
+    const typeToUse = activityType[activity.type.toLowerCase()] || 0;
+    const presenceActivity = [
+      {
+        type: typeToUse,
+        name: activity.name,
+      },
+    ];
+
+    client.user.setPresence({
+      status: botPresenceSettings.status,
+      activities: presenceActivity,
+    });
+  }
 }
 
 async function applyAutoRoles(member) {
@@ -284,7 +360,7 @@ function setupTemporaryChannels(client) {
   client.on("voiceStateUpdate", async (oldState, newState) => {
     // Check if user joined a voice channel
     if (newState.channelId && !oldState.channelId) {
-      await handleVoiceJoin(newState, settings);
+      await handleVoiceJoin(newState);
     }
 
     // Check if user left a voice channel
@@ -314,7 +390,7 @@ async function handleVoiceJoin(state) {
   const guild = state.guild;
   const member = state.member;
 
-  const channelName = formatChannelName(triggerChannel.channelName, member);
+  const channelName = formatPlaceholders(triggerChannel.channelName, member);
 
   try {
     const newChannel = await guild.channels.create({
@@ -358,12 +434,17 @@ async function handleVoiceLeave(state) {
   }
 }
 
-function formatChannelName(nameTemplate, member) {
-  return nameTemplate
+function formatPlaceholders(string, member) {
+  return string
+    .replace("{mention}", member.user.toString())
+    .replace("{name}", member.displayName)
     .replace("{username}", member.user.username)
     .replace("{tag}", member.user.tag)
-    .replace("{id}", member.id);
+    .replace("{id}", member.id)
+    .replace("{servername}", member.guild.name);
 }
+
+// Placeholders available: {user}, {username}, {tag}, {id}, {servername}
 
 function welcomeGoodbye(member, isJoining) {
   const settings = db.get("settings").welcomeGoodbyeSettings;
@@ -382,8 +463,10 @@ function welcomeGoodbye(member, isJoining) {
   if (!channel) return; // Exit if the channel is not found
 
   const embed = new EmbedBuilder()
-    .setColor(eventSettings.color || "#000000")
-    .setDescription(formatMessage(eventSettings.message, member))
+    .setColor(
+      rgbStringToInt(eventSettings.color) || isJoining ? 0x00ff00 : 0xff0000,
+    )
+    .setDescription(formatPlaceholders(eventSettings.message, member))
     .setTimestamp();
 
   if (isJoining) {
@@ -396,11 +479,58 @@ function welcomeGoodbye(member, isJoining) {
   channel.send({ embeds: [embed] });
 }
 
-function formatMessage(message, member) {
-  return message
-    .replace("{user}", member.user.toString())
-    .replace("{username}", member.user.username)
-    .replace("{servername}", member.guild.name);
+async function autoResponder(message) {
+  const settings = db.get("settings").autoResponderSettings;
+
+  if (message.author.bot) return;
+
+  // Calculate random initial delay between 0.5 to 2 seconds (500 to 2000 milliseconds)
+  const initialDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+
+  // Wait for initial delay
+  await new Promise((resolve) => setTimeout(resolve, initialDelay));
+
+  for (const item in settings) {
+    const { triggerWords, responses, ignoredAIChannels, sendAsReply } =
+      settings[item];
+
+    // Check if triggerWords or responses are empty or undefined
+    if (
+      !triggerWords ||
+      triggerWords.length === 0 ||
+      !responses ||
+      responses.length === 0
+    )
+      continue;
+
+    // Check if the message channel is in ignoredAIChannels, handle undefined or empty case
+    if (ignoredAIChannels && ignoredAIChannels.includes(message.channel.id))
+      continue;
+
+    for (const trigger of triggerWords) {
+      if (message.content.includes(trigger)) {
+        // Simulate typing indicator
+        await message.channel.sendTyping();
+
+        // Calculate random typing delay between 0.5 to 2 seconds (500 to 2000 milliseconds)
+        const typingDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+
+        // Wait for typing delay
+        await new Promise((resolve) => setTimeout(resolve, typingDelay));
+
+        // Send the response
+        const response =
+          responses[Math.floor(Math.random() * responses.length)];
+
+        if (sendAsReply) {
+          message.reply(formatPlaceholders(response, message.member));
+        } else {
+          message.channel.send(formatPlaceholders(response, message.member));
+        }
+        return;
+      }
+    }
+  }
 }
 
 function autoMod(message) {
@@ -1071,6 +1201,24 @@ function setupRoutes() {
         JSON.stringify(updatedSettings.autoModSettings)
       ) {
         logger.logControlEvent("updated automod settings", req.user);
+      }
+
+      if (
+        JSON.stringify(currentSettings.botPresenceSettings) !==
+        JSON.stringify(updatedSettings.botPresenceSettings)
+      ) {
+        clearInterval(botPresenceInterval);
+        botPresenceInterval = setInterval(
+          setBotPresence,
+          updatedSettings.botPresenceSettings.changeInterval * 60000,
+        );
+      }
+
+      if (
+        JSON.stringify(currentSettings.aiSettings) !==
+        JSON.stringify(updatedSettings.aiSettings)
+      ) {
+        chatBot.reset();
       }
 
       res.json({ message: `Settings updated successfully` });

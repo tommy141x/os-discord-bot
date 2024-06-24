@@ -1,4 +1,5 @@
 const axios = require("axios");
+const cheerio = require("cheerio");
 const OpenAI = require("openai");
 const config = require("../config.json");
 const db = require("./db.js");
@@ -33,10 +34,29 @@ class AIChatBot {
 
   async loadPersonality() {
     this.personality = this.settings.personality;
-    for (const url of this.settings.dataFetches) {
+    this.personality +=
+      "\nYou can use placeholders in your responses! You can use {mention} to ping the user who triggered you, {username} to get their username, or just {name} to get their name without pinging them. You can also use {servername} to get the name of the server you are in and represent.";
+    const date = new Date();
+    const options = {
+      year: "numeric", // 'numeric'
+      month: "long", // 'short', 'long', or 'numeric'
+      day: "numeric", // 'numeric'
+      timeZone: "America/New_York", // EST timezone
+    };
+    const formattedDate = date.toLocaleString("en-US", options);
+    this.personality += `\nThe date is ${formattedDate} EST, you have access to the internet. Here is some information from the internet you can use to answer questions:`;
+    for (const url of this.settings.dataFetchs) {
       try {
         const response = await axios.get(url);
-        this.personality += "\n" + response.data;
+        const $ = cheerio.load(response.data);
+
+        $("script").remove();
+
+        // Extract text content using Cheerio
+        const textContent = $("body").text().trim();
+
+        // Append to personality with source URL
+        this.personality += `\n\nSource of information: ${url}\n\n${textContent}`;
       } catch (error) {
         console.error(`Error fetching data from ${url}:`, error);
       }
@@ -110,8 +130,15 @@ class AIChatBot {
 
   async reset() {
     this.settings = db.get("settings").aiSettings;
-    await this.loadPersonality();
-    console.log("AI ChatBot has been reset with new settings.");
+    if (!this.isInitialized) {
+      this.initialize();
+    } else if (this.settings.enabled) {
+      await this.loadPersonality();
+      console.log("AI ChatBot has been reset with new settings.");
+    } else {
+      this.isInitialized = false;
+      console.log("AI ChatBot has been disabled.");
+    }
   }
 }
 

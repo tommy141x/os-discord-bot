@@ -82,6 +82,7 @@
         </style>
         <script>
             // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+            let settings = {};
             if (
                 localStorage.getItem("color-theme") === "dark" ||
                 (!("color-theme" in localStorage) &&
@@ -263,6 +264,18 @@
                         uk-icon="icon: rss; ratio: 0.8"
                     ></span>
                     Control Panel Logs
+                </button>
+
+                <button
+                    class="uk-width-1-1 uk-button uk-button-default"
+                    onclick="showDiv('bot-settings')"
+                    style="justify-content: left"
+                >
+                    <span
+                        style="margin-right: 0.5rem"
+                        uk-icon="icon: rss; ratio: 0.8"
+                    ></span>
+                    Bot Settings
                 </button>
                 <button
                     class="uk-width-1-1 uk-button uk-button-default"
@@ -1921,22 +1934,23 @@
                     addEmbedButton: document.getElementById("addEmbed"),
                 };
 
-                let settings;
                 let editingIndex = -1;
 
                 const fetchSettings = async () => {
-                    try {
-                        const response = await fetch("/api/settings");
-                        settings = await response.json();
-                        renderCards();
-                        renderCustomCommands();
-                    } catch (error) {
-                        console.error("Error fetching settings:", error);
-                        UIkit.notification({
-                            message: "Failed to load settings",
-                            status: "danger",
+                    const response = await fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.utilitySettings = data.utilitySettings;
+                            renderCards();
+                            renderCustomCommands();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message: "Failed to load utility settings",
+                                status: "danger",
+                            });
                         });
-                    }
                 };
 
                 const renderCards = () => {
@@ -2179,20 +2193,19 @@
                 const modRoleInput = document.getElementById("modRoleInput");
                 const addModRoleButton = document.getElementById("addModRole");
                 const modRoleList = document.getElementById("modRoleList");
-                let settings;
 
                 // Fetch current settings
                 fetch("/api/settings")
                     .then((response) => response.json())
                     .then((data) => {
-                        settings = data;
+                        settings.moderationSettings = data.moderationSettings;
                         renderModRoles();
                         renderCards();
                     })
                     .catch((error) => {
                         console.error("Error fetching settings:", error);
                         UIkit.notification({
-                            message: "Failed to load settings",
+                            message: "Failed to load moderation settings",
                             status: "danger",
                         });
                     });
@@ -2311,17 +2324,17 @@
                     <input
                         class="uk-input uk-width-1-2@m"
                         type="text"
-                        id="ignoredRoleInput"
+                        id="ignoredAutoModRoleInput"
                         placeholder="Role ID"
                     />
                     <button
                         class="uk-button uk-button-primary uk-margin-left"
-                        id="addIgnoredRole"
+                        id="addIgnoredAutoModRole"
                     >
                         Add Role
                     </button>
                 </div>
-                <div id="ignoredRoleList" class="uk-margin-top"></div>
+                <div id="ignoredAutoModRoleList" class="uk-margin-top"></div>
             </div>
 
             <div class="uk-grid uk-child-width-1-2@m uk-grid-match" uk-grid>
@@ -2332,18 +2345,18 @@
                             <input
                                 class="uk-input"
                                 type="text"
-                                id="ignoredChannelInput"
+                                id="ignoredAutoModChannelInput"
                                 placeholder="Channel ID"
                             />
                             <button
                                 class="uk-button uk-button-primary uk-margin-small-top"
-                                id="addIgnoredChannel"
+                                id="addIgnoredAutoModChannel"
                             >
                                 Add Channel
                             </button>
                         </div>
                         <div
-                            id="ignoredChannelList"
+                            id="ignoredAutoModChannelList"
                             class="uk-margin-small"
                         ></div>
                     </div>
@@ -2468,13 +2481,12 @@
                     const saveAutoModButton = document.getElementById(
                         "saveAutoModSettings",
                     );
-                    let settings;
 
                     // Fetch current settings
                     fetch("/api/settings")
                         .then((response) => response.json())
                         .then((data) => {
-                            settings = data;
+                            settings.autoModSettings = data.autoModSettings;
                             renderAutoModSettings();
                         })
                         .catch((error) => {
@@ -2488,12 +2500,12 @@
 
                     function renderAutoModSettings() {
                         renderList(
-                            "ignoredRole",
-                            settings.autoModSettings.ignoredRoles,
+                            "ignoredAutoModRole",
+                            settings.autoModSettings.ignoredAutoModRoles,
                         );
                         renderList(
-                            "ignoredChannel",
-                            settings.autoModSettings.ignoredChannels,
+                            "ignoredAutoModChannel",
+                            settings.autoModSettings.ignoredAutoModChannels,
                         );
                         renderList(
                             "mediaOnlyChannel",
@@ -2549,8 +2561,8 @@
 
                     // Add event listeners for adding items
                     [
-                        "ignoredRole",
-                        "ignoredChannel",
+                        "ignoredAutoModRole",
+                        "ignoredAutoModChannel",
                         "mediaOnlyChannel",
                         "ytLinkOnlyChannel",
                         "ttvLinkOnlyChannel",
@@ -2622,14 +2634,520 @@
                 });
             </script>
         </div>
-        <div id="welcome-goodbye" class="page uk-background-secondary">
-            <!-- welcome goodbye page -->
+        <div
+            id="welcome-goodbye"
+            class="page uk-background-secondary uk-padding"
+        >
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Welcome & Goodbye Settings
+            </h1>
+
+            <div class="uk-grid uk-child-width-1-2@m uk-grid-match" uk-grid>
+                <div>
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 class="uk-card-title">Join Message</h3>
+                        <div class="uk-margin-small">
+                            <label>
+                                <input
+                                    class="uk-checkbox"
+                                    type="checkbox"
+                                    id="joinEnabled"
+                                />
+                                Enable Join Message
+                            </label>
+                        </div>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="joinChannelId"
+                                placeholder="Channel ID"
+                            />
+                        </div>
+                        <div class="uk-margin-small">
+                            <textarea
+                                class="uk-textarea"
+                                rows="4"
+                                id="joinMessage"
+                                placeholder="Join Message (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})"
+                            ></textarea>
+                        </div>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="joinColor"
+                                placeholder="Color"
+                                data-coloris
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="uk-card uk-card-default uk-card-body">
+                        <h3 class="uk-card-title">Leave Message</h3>
+                        <div class="uk-margin-small">
+                            <label>
+                                <input
+                                    class="uk-checkbox"
+                                    type="checkbox"
+                                    id="leaveEnabled"
+                                />
+                                Enable Leave Message
+                            </label>
+                        </div>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="leaveChannelId"
+                                placeholder="Channel ID"
+                            />
+                        </div>
+                        <div class="uk-margin-small">
+                            <textarea
+                                class="uk-textarea"
+                                rows="4"
+                                id="leaveMessage"
+                                placeholder="Leave Message (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})"
+                            ></textarea>
+                        </div>
+                        <div class="uk-margin-small">
+                            <input
+                                class="uk-input"
+                                type="text"
+                                id="leaveColor"
+                                placeholder="Color"
+                                data-coloris
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top"
+                id="saveWelcomeGoodbyeSettings"
+            >
+                Save Welcome & Goodbye Settings
+            </button>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const welcomeGoodbyePage =
+                        document.getElementById("welcome-goodbye");
+                    const saveButton = document.getElementById(
+                        "saveWelcomeGoodbyeSettings",
+                    );
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.welcomeGoodbyeSettings =
+                                data.welcomeGoodbyeSettings;
+                            renderWelcomeGoodbyeSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message:
+                                    "Failed to load welcome & goodbye settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderWelcomeGoodbyeSettings() {
+                        const joinSettings =
+                            settings.welcomeGoodbyeSettings.join;
+                        const leaveSettings =
+                            settings.welcomeGoodbyeSettings.leave;
+
+                        document.getElementById("joinEnabled").checked =
+                            joinSettings.enabled;
+                        document.getElementById("joinChannelId").value =
+                            joinSettings.channelId;
+                        document.getElementById("joinMessage").value =
+                            joinSettings.message;
+                        document.getElementById("joinColor").value =
+                            joinSettings.color;
+
+                        document.getElementById("leaveEnabled").checked =
+                            leaveSettings.enabled;
+                        document.getElementById("leaveChannelId").value =
+                            leaveSettings.channelId;
+                        document.getElementById("leaveMessage").value =
+                            leaveSettings.message;
+                        document.getElementById("leaveColor").value =
+                            leaveSettings.color;
+                    }
+
+                    saveButton.addEventListener("click", () => {
+                        settings.welcomeGoodbyeSettings = {
+                            join: {
+                                enabled:
+                                    document.getElementById("joinEnabled")
+                                        .checked,
+                                channelId: document
+                                    .getElementById("joinChannelId")
+                                    .value.trim(),
+                                message: document
+                                    .getElementById("joinMessage")
+                                    .value.trim(),
+                                color: document
+                                    .getElementById("joinColor")
+                                    .value.trim(),
+                            },
+                            leave: {
+                                enabled:
+                                    document.getElementById("leaveEnabled")
+                                        .checked,
+                                channelId: document
+                                    .getElementById("leaveChannelId")
+                                    .value.trim(),
+                                message: document
+                                    .getElementById("leaveMessage")
+                                    .value.trim(),
+                                color: document
+                                    .getElementById("leaveColor")
+                                    .value.trim(),
+                            },
+                        };
+
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message:
+                                        "Welcome & goodbye settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving welcome & goodbye settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message:
+                                        "Failed to save welcome & goodbye settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
-        <div id="auto-responder" class="page uk-background-secondary">
-            <!-- auto responder page -->
+        <div
+            id="auto-responder"
+            class="page uk-background-secondary uk-padding"
+        >
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Auto Responder Settings
+            </h1>
+
+            <div id="autoResponderList"></div>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top"
+                id="addAutoResponder"
+            >
+                Add New Auto Responder
+            </button>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top uk-margin-left"
+                id="saveAutoResponderSettings"
+            >
+                Save Auto Responder Settings
+            </button>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const autoResponderPage =
+                        document.getElementById("auto-responder");
+                    const autoResponderList =
+                        document.getElementById("autoResponderList");
+                    const addAutoResponderButton =
+                        document.getElementById("addAutoResponder");
+                    const saveAutoResponderButton = document.getElementById(
+                        "saveAutoResponderSettings",
+                    );
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.autoResponderSettings =
+                                data.autoResponderSettings;
+                            renderAutoResponderSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message:
+                                    "Failed to load auto responder settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderAutoResponderSettings() {
+                        autoResponderList.innerHTML = "";
+                        Object.entries(settings.autoResponderSettings).forEach(
+                            ([key, value]) => {
+                                const autoResponderElement =
+                                    createAutoResponderElement(key, value);
+                                autoResponderList.appendChild(
+                                    autoResponderElement,
+                                );
+                            },
+                        );
+                    }
+
+                    function createAutoResponderElement(key, value) {
+                        const element = document.createElement("div");
+                        element.className =
+                            "uk-card uk-card-default uk-card-body uk-margin";
+                        element.innerHTML = `
+                            <h3 class="uk-card-title">Auto Responder: ${key}</h3>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Trigger Words</label>
+                                <input class="uk-input" type="text" placeholder="Comma-separated trigger words" value="${Array.isArray(value.triggerWords) ? value.triggerWords.join(", ") : ""}" data-field="triggerWords">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Responses (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})</label>
+                                <textarea class="uk-textarea" rows="3" placeholder="One response per line" data-field="responses">${Array.isArray(value.responses) ? value.responses.join(", ") : ""}</textarea>
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Ignored Channels</label>
+                                <input class="uk-input" type="text" placeholder="Comma-separated channel IDs" value="${Array.isArray(value.ignoredChannels) ? value.ignoredChannels.join(", ") : ""}" data-field="ignoredChannels">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label>
+                                    <input class="uk-checkbox" type="checkbox" ${value.sendAsReply ? "checked" : ""} data-field="sendAsReply">
+                                    Send As Reply
+                                </label>
+                            </div>
+                            <button class="uk-button uk-button-danger uk-button-small" data-action="remove">Remove</button>
+                        `;
+
+                        element
+                            .querySelector("[data-action='remove']")
+                            .addEventListener("click", () => {
+                                delete settings.autoResponderSettings[key];
+                                renderAutoResponderSettings();
+                            });
+
+                        return element;
+                    }
+
+                    addAutoResponderButton.addEventListener("click", () => {
+                        const newKey = `autoResponder${Object.keys(settings.autoResponderSettings).length + 1}`;
+                        settings.autoResponderSettings[newKey] = {
+                            triggerWords: [],
+                            responses: [],
+                            ignoredChannels: [],
+                            sendAsReply: false,
+                        };
+                        renderAutoResponderSettings();
+                    });
+
+                    saveAutoResponderButton.addEventListener("click", () => {
+                        const autoResponders =
+                            autoResponderList.querySelectorAll(".uk-card");
+                        settings.autoResponderSettings = {};
+
+                        autoResponders.forEach((responder, index) => {
+                            const key = `autoResponder${index + 1}`;
+                            settings.autoResponderSettings[key] = {
+                                triggerWords: responder
+                                    .querySelector(
+                                        "[data-field='triggerWords']",
+                                    )
+                                    .value.split(",")
+                                    .map((word) => word.trim()),
+                                responses: responder
+                                    .querySelector("[data-field='responses']")
+                                    .value.split("\n")
+                                    .map((response) => response.trim()),
+                                ignoredChannels: responder
+                                    .querySelector(
+                                        "[data-field='ignoredChannels']",
+                                    )
+                                    .value.split(",")
+                                    .map((channel) => channel.trim()),
+                                sendAsReply: responder.querySelector(
+                                    "[data-field='sendAsReply']",
+                                ).checked,
+                            };
+                        });
+
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message:
+                                        "Auto responder settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving auto responder settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message:
+                                        "Failed to save auto responder settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
-        <div id="auto-roles" class="page uk-background-secondary">
-            <!-- auto roles page -->
+        <div id="auto-roles" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Auto Roles Settings
+            </h1>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Roles for New Members</h3>
+                <div class="uk-flex uk-flex-middle uk-margin-top">
+                    <input
+                        class="uk-input uk-width-1-2@m"
+                        type="text"
+                        id="autoRoleInput"
+                        placeholder="Role ID"
+                    />
+                    <button
+                        class="uk-button uk-button-primary uk-margin-left"
+                        id="addAutoRole"
+                    >
+                        Add Role
+                    </button>
+                </div>
+                <div id="autoRoleList" class="uk-margin-top"></div>
+            </div>
+
+            <button
+                class="uk-button uk-button-primary"
+                id="saveAutoRoleSettings"
+                style="margin: 0.5rem"
+            >
+                Save Auto Role Settings
+            </button>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const autoRolesPage = document.getElementById("auto-roles");
+                    const saveAutoRoleButton = document.getElementById(
+                        "saveAutoRoleSettings",
+                    );
+                    const addAutoRoleButton =
+                        document.getElementById("addAutoRole");
+                    const autoRoleInput =
+                        document.getElementById("autoRoleInput");
+                    const autoRoleList =
+                        document.getElementById("autoRoleList");
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.autoRoleSettings = data.autoRoleSettings;
+                            renderAutoRoleSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message: "Failed to load auto role settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderAutoRoleSettings() {
+                        autoRoleList.innerHTML = "";
+                        settings.autoRoleSettings.roles.forEach((roleId) => {
+                            const roleElement = document.createElement("div");
+                            roleElement.className =
+                                "uk-flex uk-flex-middle uk-margin-small-bottom";
+                            roleElement.innerHTML = `
+                                <span class="uk-margin-small-right">${roleId}</span>
+                                <button class="uk-button uk-button-danger uk-button-small" data-role-id="${roleId}">Remove</button>
+                            `;
+                            autoRoleList.appendChild(roleElement);
+                        });
+
+                        // Add event listeners to remove buttons
+                        autoRoleList
+                            .querySelectorAll("button")
+                            .forEach((button) => {
+                                button.addEventListener("click", (e) => {
+                                    const roleId = e.target.dataset.roleId;
+                                    settings.autoRoleSettings.roles =
+                                        settings.autoRoleSettings.roles.filter(
+                                            (id) => id !== roleId,
+                                        );
+                                    renderAutoRoleSettings();
+                                });
+                            });
+                    }
+
+                    addAutoRoleButton.addEventListener("click", () => {
+                        const roleId = autoRoleInput.value.trim();
+                        if (
+                            roleId &&
+                            !settings.autoRoleSettings.roles.includes(roleId)
+                        ) {
+                            settings.autoRoleSettings.roles.push(roleId);
+                            autoRoleInput.value = "";
+                            renderAutoRoleSettings();
+                        }
+                    });
+
+                    saveAutoRoleButton.addEventListener("click", () => {
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message:
+                                        "Auto role settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving auto role settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message:
+                                        "Failed to save auto role settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
         <div id="logs" class="page uk-background-secondary">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
@@ -2651,12 +3169,10 @@
                 </button>
             </div>
             <script>
-                // Fetch log settings
-                let settingsFetch = {};
                 fetch("/api/settings")
                     .then((response) => response.json())
                     .then((data) => {
-                        settingsFetch = data || {};
+                        settings.logSettings = data.logSettings || {};
                         const logSettingsCards =
                             document.getElementById("logSettingsCards");
 
@@ -2670,11 +3186,11 @@
                                 );
 
                                 // Render log settings cards
-                                Object.entries(
-                                    settingsFetch.logSettings,
-                                ).forEach(([key, value]) => {
-                                    const card = document.createElement("div");
-                                    card.innerHTML = `
+                                Object.entries(settings.logSettings).forEach(
+                                    ([key, value]) => {
+                                        const card =
+                                            document.createElement("div");
+                                        card.innerHTML = `
                         <div class="uk-card uk-card-default uk-card-body">
                           <div class="uk-grid-small uk-flex-middle" uk-grid>
                             <div class="uk-width-expand">
@@ -2697,8 +3213,9 @@
                           </div>
                         </div>
                       `;
-                                    logSettingsCards.appendChild(card);
-                                });
+                                        logSettingsCards.appendChild(card);
+                                    },
+                                );
                             })
                             .catch((error) =>
                                 console.error(
@@ -2735,14 +3252,14 @@
                         };
                     });
 
-                    settingsFetch.logSettings = updatedSettings;
+                    settings.logSettings = updatedSettings;
 
                     fetch("/api/settings", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify(settingsFetch),
+                        body: JSON.stringify(settings),
                     })
                         .then((response) => response.json())
                         .then((data) => {
@@ -2759,14 +3276,606 @@
                 });
             </script>
         </div>
-        <div id="temporary-channels" class="page uk-background-secondary">
-            <!-- temporary channels page -->
+        <div
+            id="temporary-channels"
+            class="page uk-background-secondary uk-padding"
+        >
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Temporary Channel Settings
+            </h1>
+
+            <div id="temporaryChannelList"></div>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top"
+                id="addTemporaryChannel"
+            >
+                Add New Temporary Channel
+            </button>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top uk-margin-left"
+                id="saveTemporaryChannelSettings"
+            >
+                Save Temporary Channel Settings
+            </button>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const temporaryChannelsPage =
+                        document.getElementById("temporary-channels");
+                    const temporaryChannelList = document.getElementById(
+                        "temporaryChannelList",
+                    );
+                    const addTemporaryChannelButton = document.getElementById(
+                        "addTemporaryChannel",
+                    );
+                    const saveTemporaryChannelButton = document.getElementById(
+                        "saveTemporaryChannelSettings",
+                    );
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.temporaryChannelSettings =
+                                data.temporaryChannelSettings;
+                            renderTemporaryChannelSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message:
+                                    "Failed to load temporary channel settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderTemporaryChannelSettings() {
+                        temporaryChannelList.innerHTML = "";
+                        Object.entries(
+                            settings.temporaryChannelSettings,
+                        ).forEach(([key, value]) => {
+                            const temporaryChannelElement =
+                                createTemporaryChannelElement(key, value);
+                            temporaryChannelList.appendChild(
+                                temporaryChannelElement,
+                            );
+                        });
+                    }
+
+                    function createTemporaryChannelElement(key, value) {
+                        const element = document.createElement("div");
+                        element.className =
+                            "uk-card uk-card-default uk-card-body uk-margin";
+                        element.innerHTML = `
+                            <h3 class="uk-card-title">Temporary Channel: ${key}</h3>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Trigger Channel ID</label>
+                                <input class="uk-input" type="text" placeholder="Trigger Channel ID" value="${value.triggerChannel}" data-field="triggerChannel">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Category ID</label>
+                                <input class="uk-input" type="text" placeholder="Category ID" value="${value.category}" data-field="category">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Max Users (0 for unlimited)</label>
+                                <input class="uk-input" type="number" placeholder="Max Users" value="${value.maxUsers}" data-field="maxUsers">
+                            </div>
+                            <div class="uk-margin-small">
+                                <label class="uk-form-label">Channel Name (Placeholders available: {mention}, {name}, {username}, {tag}, {id}, {servername})</label>
+                                <input class="uk-input" type="text" placeholder="Channel Name" value="${value.channelName}" data-field="channelName">
+                            </div>
+                            <button class="uk-button uk-button-danger uk-button-small" data-action="remove">Remove</button>
+                        `;
+
+                        element
+                            .querySelector("[data-action='remove']")
+                            .addEventListener("click", () => {
+                                delete settings.temporaryChannelSettings[key];
+                                renderTemporaryChannelSettings();
+                            });
+
+                        return element;
+                    }
+
+                    addTemporaryChannelButton.addEventListener("click", () => {
+                        const newKey = `tempChannel${Object.keys(settings.temporaryChannelSettings).length + 1}`;
+                        settings.temporaryChannelSettings[newKey] = {
+                            triggerChannel: "",
+                            category: "",
+                            maxUsers: 0,
+                            channelName: "",
+                        };
+                        renderTemporaryChannelSettings();
+                    });
+
+                    saveTemporaryChannelButton.addEventListener("click", () => {
+                        const temporaryChannels =
+                            temporaryChannelList.querySelectorAll(".uk-card");
+                        settings.temporaryChannelSettings = {};
+
+                        temporaryChannels.forEach((channel, index) => {
+                            const key = `tempChannel${index + 1}`;
+                            settings.temporaryChannelSettings[key] = {
+                                triggerChannel: channel
+                                    .querySelector(
+                                        "[data-field='triggerChannel']",
+                                    )
+                                    .value.trim(),
+                                category: channel
+                                    .querySelector("[data-field='category']")
+                                    .value.trim(),
+                                maxUsers:
+                                    parseInt(
+                                        channel.querySelector(
+                                            "[data-field='maxUsers']",
+                                        ).value,
+                                    ) || 0,
+                                channelName: channel
+                                    .querySelector("[data-field='channelName']")
+                                    .value.trim(),
+                            };
+                        });
+
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message:
+                                        "Temporary channel settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving temporary channel settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message:
+                                        "Failed to save temporary channel settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
-        <div id="ai-chatbot" class="page uk-background-secondary">
-            <!-- ai page -->
+        <div id="ai-chatbot" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                AI Settings
+            </h1>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">General Settings</h3>
+                <div class="uk-margin-small">
+                    <label>
+                        <input
+                            class="uk-checkbox"
+                            type="checkbox"
+                            id="aiEnabled"
+                        />
+                        Enable AI
+                    </label>
+                </div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Ignored Channels</h3>
+                <div class="uk-margin-small">
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="ignoredAIChannelInput"
+                        placeholder="Channel ID"
+                    />
+                    <button
+                        class="uk-button uk-button-primary uk-margin-small-top"
+                        id="addIgnoredAIChannel"
+                    >
+                        Add Channel
+                    </button>
+                </div>
+                <div id="ignoredAIChannelList" class="uk-margin-small"></div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Trigger Words</h3>
+                <div class="uk-margin-small">
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="triggerWordInput"
+                        placeholder="Trigger Word"
+                    />
+                    <button
+                        class="uk-button uk-button-primary uk-margin-small-top"
+                        id="addTriggerWord"
+                    >
+                        Add Trigger Word
+                    </button>
+                </div>
+                <div id="triggerWordList" class="uk-margin-small"></div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Personality</h3>
+                <div class="uk-margin-small">
+                    <textarea
+                        class="uk-textarea"
+                        rows="4"
+                        id="personality"
+                        placeholder="AI Personality"
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Data Fetches</h3>
+                <div class="uk-margin-small">
+                    <input
+                        class="uk-input"
+                        type="text"
+                        id="dataFetchInput"
+                        placeholder="URL to fetch data from"
+                    />
+                    <button
+                        class="uk-button uk-button-primary uk-margin-small-top"
+                        id="addDataFetch"
+                    >
+                        Add Data Fetch URL
+                    </button>
+                </div>
+                <div id="dataFetchList" class="uk-margin-small"></div>
+            </div>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top"
+                id="saveAiSettings"
+            >
+                Save AI Settings
+            </button>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const aiSettingsPage =
+                        document.getElementById("ai-settings");
+                    const saveButton =
+                        document.getElementById("saveAiSettings");
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.aiSettings = data.aiSettings;
+                            renderAiSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message: "Failed to load AI settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderAiSettings() {
+                        document.getElementById("aiEnabled").checked =
+                            settings.aiSettings.enabled;
+                        document.getElementById("personality").value =
+                            settings.aiSettings.personality || "";
+
+                        renderList(
+                            "ignoredAIChannel",
+                            settings.aiSettings.ignoredAIChannels,
+                        );
+                        renderList(
+                            "triggerWord",
+                            settings.aiSettings.triggerWords,
+                        );
+                        renderList(
+                            "dataFetch",
+                            settings.aiSettings.dataFetches,
+                        );
+                    }
+
+                    function renderList(type, items) {
+                        const list = document.getElementById(`${type}List`);
+                        list.innerHTML = "";
+                        if (Array.isArray(items)) {
+                            items.forEach((item) => {
+                                const itemElement =
+                                    document.createElement("div");
+                                itemElement.className =
+                                    "uk-flex uk-flex-middle uk-margin-small-bottom";
+                                itemElement.innerHTML = `
+                                <span class="uk-margin-small-right">${item}</span>
+                                <button class="uk-button uk-button-danger uk-button-small" data-item="${item}" data-type="${type}">Remove</button>
+                            `;
+                                list.appendChild(itemElement);
+                            });
+                        }
+
+                        // Add event listeners to remove buttons
+                        list.querySelectorAll("button").forEach((button) => {
+                            button.addEventListener("click", (e) => {
+                                const item = e.target.dataset.item;
+                                const type = e.target.dataset.type;
+                                if (
+                                    Array.isArray(
+                                        settings.aiSettings[`${type}s`],
+                                    )
+                                ) {
+                                    settings.aiSettings[`${type}s`] =
+                                        settings.aiSettings[`${type}s`].filter(
+                                            (id) => id !== item,
+                                        );
+                                    renderList(
+                                        type,
+                                        settings.aiSettings[`${type}s`],
+                                    );
+                                }
+                            });
+                        });
+                    }
+
+                    // Add event listeners for adding items
+                    ["ignoredAIChannel", "triggerWord", "dataFetch"].forEach(
+                        (type) => {
+                            document
+                                .getElementById(
+                                    `add${type.charAt(0).toUpperCase() + type.slice(1)}`,
+                                )
+                                .addEventListener("click", () => {
+                                    const input = document.getElementById(
+                                        `${type}Input`,
+                                    );
+                                    const item = input.value.trim();
+                                    if (item) {
+                                        if (
+                                            !Array.isArray(
+                                                settings.aiSettings[`${type}s`],
+                                            )
+                                        ) {
+                                            settings.aiSettings[`${type}s`] =
+                                                [];
+                                        }
+                                        if (
+                                            !settings.aiSettings[
+                                                `${type}s`
+                                            ].includes(item)
+                                        ) {
+                                            settings.aiSettings[
+                                                `${type}s`
+                                            ].push(item);
+                                            input.value = "";
+                                            renderList(
+                                                type,
+                                                settings.aiSettings[`${type}s`],
+                                            );
+                                        }
+                                    }
+                                });
+                        },
+                    );
+
+                    saveButton.addEventListener("click", () => {
+                        settings.aiSettings.enabled =
+                            document.getElementById("aiEnabled").checked;
+                        settings.aiSettings.personality = document
+                            .getElementById("personality")
+                            .value.trim();
+
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message: "AI settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving AI settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message: "Failed to save AI settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
-        <div id="social-alerts" class="page uk-background-secondary">
-            <!-- social alerts page -->
+        <div id="social-alerts" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Social Alert Settings
+            </h1>
+
+            <div id="socialAlertList"></div>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top"
+                id="addSocialAlert"
+            >
+                Add New Social Alert
+            </button>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top uk-margin-left"
+                id="saveSocialAlertSettings"
+            >
+                Save Social Alert Settings
+            </button>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const socialAlertsPage =
+                        document.getElementById("social-alerts");
+                    const socialAlertList =
+                        document.getElementById("socialAlertList");
+                    const addSocialAlertButton =
+                        document.getElementById("addSocialAlert");
+                    const saveSocialAlertButton = document.getElementById(
+                        "saveSocialAlertSettings",
+                    );
+
+                    // Fetch current settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            settings.socialAlertSettings =
+                                data.socialAlertSettings;
+                            renderSocialAlertSettings();
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching settings:", error);
+                            UIkit.notification({
+                                message: "Failed to load social alert settings",
+                                status: "danger",
+                            });
+                        });
+
+                    function renderSocialAlertSettings() {
+                        socialAlertList.innerHTML = "";
+                        Object.entries(settings.socialAlertSettings).forEach(
+                            ([key, value]) => {
+                                const socialAlertElement =
+                                    createSocialAlertElement(key, value);
+                                socialAlertList.appendChild(socialAlertElement);
+                            },
+                        );
+                    }
+
+                    function createSocialAlertElement(key, value) {
+                        const element = document.createElement("div");
+                        element.className =
+                            "uk-card uk-card-default uk-card-body uk-margin";
+                        element.innerHTML = `
+                                <h3 class="uk-card-title">Social Alert: ${key}</h3>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">Channel ID / Username</label>
+                                    <input class="uk-input" type="text" placeholder="Channel ID or Username" value="${value.channelId || ""}" data-field="channelId">
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">Type</label>
+                                    <select class="uk-select" data-field="type">
+                                        <option value="twitch" ${value.type === "twitch" ? "selected" : ""}>Twitch</option>
+                                        <option value="youtube" ${value.type === "youtube" ? "selected" : ""}>YouTube</option>
+                                    </select>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">Message</label>
+                                    <textarea class="uk-textarea" rows="3" placeholder="Message to include in embed" data-field="message">${value.message || ""}</textarea>
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">Whitelist Title Words</label>
+                                    <input class="uk-input" type="text" placeholder="Comma-separated words" value="${Array.isArray(value.whitelistTitleWords) ? value.whitelistTitleWords.join(", ") : ""}" data-field="whitelistTitleWords">
+                                </div>
+                                <div class="uk-margin-small">
+                                    <label class="uk-form-label">Roles to Mention</label>
+                                    <input class="uk-input" type="text" placeholder="Comma-separated role IDs" value="${Array.isArray(value.rolesToMention) ? value.rolesToMention.join(", ") : ""}" data-field="rolesToMention">
+                                </div>
+                                <button class="uk-button uk-button-danger uk-button-small" data-action="remove">Remove</button>
+                            `;
+
+                        element
+                            .querySelector("[data-action='remove']")
+                            .addEventListener("click", () => {
+                                delete settings.socialAlertSettings[key];
+                                renderSocialAlertSettings();
+                            });
+
+                        return element;
+                    }
+
+                    addSocialAlertButton.addEventListener("click", () => {
+                        const newKey = `socialAlert${Object.keys(settings.socialAlertSettings).length + 1}`;
+                        settings.socialAlertSettings[newKey] = {
+                            channelId: "",
+                            type: "twitch",
+                            message: "",
+                            whitelistTitleWords: [],
+                            rolesToMention: [],
+                        };
+                        renderSocialAlertSettings();
+                    });
+
+                    saveSocialAlertButton.addEventListener("click", () => {
+                        const socialAlerts =
+                            socialAlertList.querySelectorAll(".uk-card");
+                        settings.socialAlertSettings = {};
+
+                        socialAlerts.forEach((alert, index) => {
+                            const key = `socialAlert${index + 1}`;
+                            settings.socialAlertSettings[key] = {
+                                channelId: alert
+                                    .querySelector("[data-field='channelId']")
+                                    .value.trim(),
+                                type: alert.querySelector("[data-field='type']")
+                                    .value,
+                                message: alert
+                                    .querySelector("[data-field='message']")
+                                    .value.trim(),
+                                whitelistTitleWords: alert
+                                    .querySelector(
+                                        "[data-field='whitelistTitleWords']",
+                                    )
+                                    .value.split(",")
+                                    .map((word) => word.trim())
+                                    .filter((word) => word !== ""),
+                                rolesToMention: alert
+                                    .querySelector(
+                                        "[data-field='rolesToMention']",
+                                    )
+                                    .value.split(",")
+                                    .map((role) => role.trim())
+                                    .filter((role) => role !== ""),
+                            };
+                        });
+
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message:
+                                        "Social alert settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving social alert settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message:
+                                        "Failed to save social alert settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
+            </script>
         </div>
         <div id="control-panel-logs" class="page uk-background-secondary">
             <div class="uk-container uk-margin-top">
@@ -2852,6 +3961,231 @@
 
                 // Call this function when the control panel logs page is loaded
                 loadControlPanelLogs();
+            </script>
+        </div>
+        <div id="bot-settings" class="page uk-background-secondary uk-padding">
+            <h1 class="uk-h1 text-foreground" style="margin: 1rem">
+                Bot Presence Settings
+            </h1>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Presence Status</h3>
+                <div class="uk-margin-small">
+                    <label>
+                        Status:
+                        <select id="presenceStatus" class="uk-select">
+                            <option value="online">Online</option>
+                            <option value="idle">Idle</option>
+                            <option value="dnd">Do Not Disturb</option>
+                            <option value="invisible">Invisible</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Activites</h3>
+                <div class="uk-margin-small">
+                    <label>
+                        Activity Type:
+                        <input
+                            class="uk-input"
+                            type="text"
+                            id="activityTypeInput"
+                            placeholder="Enter activity type (e.g., PLAYING)"
+                        />
+                    </label>
+                </div>
+                <div class="uk-margin-small">
+                    <label>
+                        Activity Name:
+                        <input
+                            class="uk-input"
+                            type="text"
+                            id="activityNameInput"
+                            placeholder="Enter activity name"
+                        />
+                    </label>
+                </div>
+                <button class="uk-button uk-button-primary" id="addActivity">
+                    Add Activity
+                </button>
+                <div id="activitiesList" class="uk-margin-small">
+                    <!-- Activities will be dynamically added here -->
+                </div>
+            </div>
+
+            <div class="uk-card uk-card-default uk-card-body uk-margin">
+                <h3 class="uk-card-title">Change Interval</h3>
+                <div class="uk-margin-small">
+                    <label>
+                        Change Interval (minutes):
+                        <input
+                            class="uk-input"
+                            type="number"
+                            id="changeInterval"
+                            value="1"
+                        />
+                    </label>
+                </div>
+            </div>
+
+            <button
+                class="uk-button uk-button-primary uk-margin-top"
+                id="saveBotSettings"
+            >
+                Save Bot Settings
+            </button>
+            <script>
+                document.addEventListener("DOMContentLoaded", () => {
+                    const botSettingsPage =
+                        document.getElementById("bot-settings");
+                    const saveBotSettingsButton =
+                        document.getElementById("saveBotSettings");
+                    const addActivityButton =
+                        document.getElementById("addActivity");
+                    const activitiesList =
+                        document.getElementById("activitiesList");
+                    const presenceStatusSelect =
+                        document.getElementById("presenceStatus");
+                    const changeIntervalInput =
+                        document.getElementById("changeInterval");
+
+                    // Fetch current bot presence settings
+                    fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((data) => {
+                            // Populate UI with fetched settings
+                            settings.botPresenceSettings =
+                                data.botPresenceSettings;
+                            presenceStatusSelect.value =
+                                settings.botPresenceSettings.status;
+                            changeIntervalInput.value =
+                                settings.botPresenceSettings.changeInterval;
+
+                            // Render existing activities
+                            renderActivities(
+                                settings.botPresenceSettings.activities,
+                            );
+                        })
+                        .catch((error) => {
+                            console.error(
+                                "Error fetching bot presence settings:",
+                                error,
+                            );
+                            UIkit.notification({
+                                message: "Failed to load bot presence settings",
+                                status: "danger",
+                            });
+                        });
+
+                    // Render activities list
+                    function renderActivities(activities) {
+                        activitiesList.innerHTML = ""; // This line might cause the error if activitiesList is null
+                        activities.forEach((activity) => {
+                            const activityElement =
+                                document.createElement("div");
+                            activityElement.className =
+                                "uk-flex uk-flex-middle uk-margin-small-bottom";
+                            activityElement.innerHTML = `
+                                    <span class="uk-margin-small-right">${activity.type} ${activity.name}</span>
+                                    <button class="uk-button uk-button-danger uk-button-small" data-type="${activity.type}" data-name="${activity.name}">Remove</button>
+                                `;
+                            activitiesList.appendChild(activityElement);
+                        });
+                    }
+
+                    // Event listener for adding new activity
+                    addActivityButton.addEventListener("click", () => {
+                        const typeInput =
+                            document.getElementById("activityTypeInput");
+                        const nameInput =
+                            document.getElementById("activityNameInput");
+
+                        const type = typeInput.value.trim().toUpperCase();
+                        const name = nameInput.value.trim();
+
+                        if (type && name) {
+                            const newActivity = {
+                                type: type,
+                                name: name,
+                            };
+                            activitiesList.appendChild(
+                                createActivityElement(newActivity),
+                            );
+
+                            // Clear input fields after adding activity
+                            typeInput.value = "";
+                            nameInput.value = "";
+                        }
+                    });
+
+                    // Function to create activity element
+                    function createActivityElement(activity) {
+                        const activityElement = document.createElement("div");
+                        activityElement.className =
+                            "uk-flex uk-flex-middle uk-margin-small-bottom";
+                        activityElement.innerHTML = `
+                            <span class="uk-margin-small-right">${activity.type} ${activity.name}</span>
+                            <button class="uk-button uk-button-danger uk-button-small" data-type="${activity.type}" data-name="${activity.name}">Remove</button>
+                        `;
+                        return activityElement;
+                    }
+
+                    // Event listener for removing activity
+                    activitiesList.addEventListener("click", (e) => {
+                        if (e.target.tagName === "BUTTON") {
+                            const type = e.target.dataset.type;
+                            const name = e.target.dataset.name;
+                            // Remove activity from UI
+                            e.target.parentNode.remove();
+                        }
+                    });
+
+                    // Event listener for saving bot settings
+                    saveBotSettingsButton.addEventListener("click", () => {
+                        const activities = Array.from(
+                            activitiesList.children,
+                        ).map((activityElement) => ({
+                            type: activityElement.querySelector("button")
+                                .dataset.type,
+                            name: activityElement.querySelector("button")
+                                .dataset.name,
+                        }));
+
+                        settings.botPresenceSettings = {
+                            status: presenceStatusSelect.value,
+                            activities: activities,
+                            changeInterval: parseInt(changeIntervalInput.value),
+                        };
+
+                        // Save settings via API
+                        fetch("/api/settings", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(settings),
+                        })
+                            .then((response) => response.json())
+                            .then((data) => {
+                                UIkit.notification({
+                                    message: "Bot settings saved successfully",
+                                    status: "success",
+                                });
+                            })
+                            .catch((error) => {
+                                console.error(
+                                    "Error saving bot settings:",
+                                    error,
+                                );
+                                UIkit.notification({
+                                    message: "Failed to save bot settings",
+                                    status: "danger",
+                                });
+                            });
+                    });
+                });
             </script>
         </div>
         <div id="mod-actions" class="page uk-background-secondary">
