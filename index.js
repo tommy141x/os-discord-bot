@@ -252,6 +252,7 @@ function setupEventListeners() {
 
     // Check if the message mentions the bot
     if (message.mentions.has(client.user)) {
+      message.content = message.content.replace(client.user.toString(), "@You");
       const response = await chatBot.generateResponse(message);
       await message.reply(formatPlaceholders(response, message.member));
       responded = true; // Mark as responded by the chatbot
