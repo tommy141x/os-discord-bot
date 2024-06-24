@@ -211,7 +211,7 @@ function getDefaultSettings() {
       ignoredChannels: [],
       triggerWords: [],
       personality: "",
-      dataFetches: [], // Contains URLs to fetch text from to append to the personality
+      dataFetchs: [], // Contains URLs to fetch text from to append to the personality
     },
     autoRoleSettings: {
       roles: [], //Roles to give to new members
