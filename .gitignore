@@ -9,6 +9,8 @@ lerna-debug.log*
 
 # Ignore config.json and db.json
 config.json
+livecord-twitch.json
+livecord-youtube.json
 db.json
 public/
 
