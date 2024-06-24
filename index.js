@@ -58,6 +58,15 @@ app.use(
 );
 app.use(express.json());
 
+const publicDir = path.join(__dirname, "public");
+const mediaDir = path.join(publicDir, "media");
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir);
+}
+if (!fs.existsSync(mediaDir)) {
+  fs.mkdirSync(mediaDir);
+}
+
 // Initialize Discord client
 const client = new Client({
   intents: Object.values(GatewayIntentBits),
