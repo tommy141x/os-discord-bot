@@ -4569,8 +4569,8 @@
                     function createActivityElement(activity) {
                         const activityElement = document.createElement("div");
                         strActivity =
-                            activity.name.charAt(0).toUpperCase() +
-                            activity.name.slice(1).toLowerCase();
+                            activity.type.charAt(0).toUpperCase() +
+                            activity.type.slice(1).toLowerCase();
                         activityElement.className =
                             "uk-flex uk-flex-middle uk-margin-small-bottom";
                         activityElement.innerHTML = `
