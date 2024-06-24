@@ -57,7 +57,6 @@ app.use(
   }),
 );
 app.use(express.json());
-app.use(favicon(__dirname + "/public/favicon.ico"));
 
 // Initialize Discord client
 const client = new Client({
@@ -670,6 +669,7 @@ async function setGuildFavicon() {
       https.get(guildIconURL, (response) => {
         response.pipe(file);
       });
+      app.use(favicon(__dirname + "/public/favicon.ico"));
     }
   }
 }
