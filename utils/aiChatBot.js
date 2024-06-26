@@ -1,6 +1,7 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 const OpenAI = require("openai");
+const unirest = require("unirest");
 const config = require("../config.json");
 const db = require("./db.js");
 
@@ -63,6 +64,82 @@ class AIChatBot {
     }
   }
 
+  async searchGoogle(query) {
+    try {
+      const url =
+        "https://www.google.com/search?q=" + encodeURIComponent(query);
+      const headers = {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+      };
+      const response = await unirest.get(url).headers(headers);
+
+      const $ = cheerio.load(response.body);
+
+      let results = [];
+
+      // Extract main search results
+      $("div.g").each((i, element) => {
+        if (results.length > 5) return false;
+        const titleElement = $(element).find("h3");
+        const linkElement = $(element).find("a");
+
+        // Try different selectors for the snippet
+        let snippetElement = $(element).find(
+          'div[style="-webkit-line-clamp:2"]',
+        );
+        if (snippetElement.length === 0) {
+          snippetElement = $(element).find("div.VwiC3b");
+        }
+        if (snippetElement.length === 0) {
+          snippetElement = $(element).find("div.s");
+        }
+
+        if (titleElement.length > 0) {
+          results.push({
+            title: titleElement.text().trim(),
+            snippet: snippetElement.text().trim(),
+            link: linkElement.attr("href"),
+          });
+        }
+      });
+
+      // Extract featured snippet if available
+      const featuredSnippet = $("div.xpdopen div.LGOjhe").text().trim();
+      if (featuredSnippet) {
+        results.unshift({ type: "featured snippet", content: featuredSnippet });
+      }
+
+      // Extract "People also ask" questions
+      $("div.related-question-pair").each((i, element) => {
+        const question = $(element).find("div.iDjcJe").text().trim();
+        if (question) {
+          results.push({
+            type: "people also ask",
+            question: question,
+          });
+        }
+      });
+
+      if (results.length === 0) {
+        return [];
+      } else {
+        console.log(JSON.stringify(results, null, 2));
+      }
+
+      return results;
+    } catch (e) {
+      console.error("Error searching Google:", e);
+      return [];
+    }
+  }
+
   shouldRespond(message) {
     if (!this.isInitialized || !this.settings.enabled) return false;
     if (this.settings.ignoredChannels.includes(message.channel.id))
@@ -89,9 +166,38 @@ class AIChatBot {
 
   async generateOpenAIResponse(message) {
     try {
+      let googleResults = null;
+      const googleCompletion = await this.openai.chat.completions.create({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an assistant that determines what to search if a given question or statement requires an internet search to answer. Always respond with a concise search query if an internet search would be helpful, or 'false' if it's not necessary. Never respond with anything else.",
+          },
+          { role: "user", content: message.content },
+        ],
+        model: this.model,
+      });
+
+      console.log(message.content);
+
+      const response = await googleCompletion.choices[0].message.content.trim();
+      if (!response.startsWith("false")) {
+        console.log("Searching " + response);
+        googleResults = await this.searchGoogle(response);
+        if (googleResults.length === 0) {
+          googleResults = null;
+        }
+      }
+
+      let systemMessage = this.personality;
+      if (googleResults) {
+        systemMessage += `\n\nI searched the internet for you and found this information: ${JSON.stringify(googleResults)}`;
+      }
+
       const completion = await this.openai.chat.completions.create({
         messages: [
-          { role: "system", content: this.personality },
+          { role: "system", content: systemMessage },
           { role: "user", content: message.content },
         ],
         model: this.model,
