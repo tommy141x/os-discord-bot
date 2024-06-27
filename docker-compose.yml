@@ -8,3 +8,4 @@ services:
     volumes:
       - ./config.json:/app/config.json
       - ./db.json:/app/db.json
+      - ./public:/app/public
