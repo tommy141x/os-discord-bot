@@ -123,10 +123,23 @@ client.once("ready", async () => {
 });
 
 // Initialize settings
+function deepMerge(target, source) {
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (source[key] instanceof Object && !Array.isArray(source[key])) {
+        target[key] = deepMerge(target[key] || {}, source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
+  }
+  return target;
+}
+
 function initializeSettings() {
   let settings = db.get("settings") || {};
   const defaultSettings = getDefaultSettings();
-  settings = { ...defaultSettings, ...settings };
+  settings = deepMerge(JSON.parse(JSON.stringify(defaultSettings)), settings);
   db.set("settings", settings);
   return settings;
 }
@@ -208,6 +221,7 @@ function getDefaultSettings() {
     autoResponderSettings: {},
     aiSettings: {
       enabled: false,
+      internet: true,
       ignoredChannels: [],
       triggerWords: [],
       personality: "",
@@ -268,8 +282,15 @@ function setupEventListeners() {
         if (repliedMessage && repliedMessage.author.bot) {
           const repliedContent = repliedMessage.content;
 
+          if (repliedMessage.reference && repliedMessage.reference.messageId) {
+            const userPreviousMessage = await message.channel.messages.fetch(
+              repliedMessage.reference.messageId,
+            );
+            message.previousMessage = userPreviousMessage.content;
+          }
+
           // Trigger the chatbot with both the replied message content and the new message content
-          message.content = `I am responding to your previous message "${repliedContent}", ${message.content}`;
+          message.repliedContent = repliedContent;
 
           const response = await chatBot.generateResponse(message);
 

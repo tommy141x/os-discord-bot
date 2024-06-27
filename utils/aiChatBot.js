@@ -45,7 +45,7 @@ class AIChatBot {
       timeZone: "America/New_York", // EST timezone
     };
     const formattedDate = date.toLocaleString("en-US", options);
-    this.personality += `\nThe date is ${formattedDate} EST, you have access to the internet. Here is some information from the internet you can use to answer questions:`;
+    this.personality += `\nThe date is ${formattedDate} EST, you have access to the internet.`;
     for (const url of this.settings.dataFetchs) {
       try {
         const response = await axios.get(url);
@@ -167,39 +167,70 @@ class AIChatBot {
   async generateOpenAIResponse(message) {
     try {
       let googleResults = null;
-      const googleCompletion = await this.openai.chat.completions.create({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an assistant that determines what to search if a given question or statement requires an internet search to answer. Always respond with a concise search query if an internet search would be helpful, or 'false' if it's not necessary. Never respond with anything else.",
-          },
-          { role: "user", content: message.content },
-        ],
-        model: this.model,
-      });
+      if (this.settings.internet) {
+        const googleCompletion = await this.openai.chat.completions.create({
+          messages: [
+            {
+              role: "system",
+              content: `You are an assistant that determines what to search if a given question or statement requires an internet search to answer.
+                Always respond with a concise search query if an internet search would be helpful, or 'false' if it's not necessary.
+                Never respond with anything else.`,
+            },
+            { role: "user", content: message.content },
+          ],
+          model: this.model,
+        });
 
-      console.log(message.content);
-
-      const response = await googleCompletion.choices[0].message.content.trim();
-      if (!response.startsWith("false")) {
-        console.log("Searching " + response);
-        googleResults = await this.searchGoogle(response);
-        if (googleResults.length === 0) {
-          googleResults = null;
+        const response =
+          await googleCompletion.choices[0].message.content.trim();
+        if (!response.startsWith("false")) {
+          googleResults = await this.searchGoogle(response);
+          if (googleResults.length === 0) {
+            googleResults = null;
+          }
         }
       }
 
       let systemMessage = this.personality;
+
       if (googleResults) {
         systemMessage += `\n\nI searched the internet for you and found this information: ${JSON.stringify(googleResults)}`;
       }
 
+      let messages = [];
+      if (message.previousMessage) {
+        messages.push({
+          role: "system",
+          content: systemMessage,
+        });
+        messages.push({
+          role: "user",
+          content: message.previousMessage,
+        });
+      } else {
+        messages.push({
+          role: "system",
+          content: systemMessage,
+        });
+      }
+      if (message.repliedContent) {
+        messages.push({
+          role: "system",
+          content: message.repliedContent,
+        });
+        messages.push({
+          role: "user",
+          content: message.content,
+        });
+      } else {
+        messages.push({
+          role: "user",
+          content: message.content,
+        });
+      }
+
       const completion = await this.openai.chat.completions.create({
-        messages: [
-          { role: "system", content: systemMessage },
-          { role: "user", content: message.content },
-        ],
+        messages: messages,
         model: this.model,
       });
       return completion.choices[0].message.content.trim();
@@ -210,14 +241,72 @@ class AIChatBot {
   }
 
   async generateClaudeResponse(message) {
-    const prompt = `${this.personality}\n\nHuman: ${message.content}\n\nAssistant:`;
     try {
+      let googleResults = null;
+      if (this.settings.internet) {
+        const searchPrompt = `Human: You are an assistant that determines what to search if a given question or statement requires an internet search to answer.
+          Always respond with a concise search query if an internet search would be helpful, or 'false' if it's not necessary.
+          Never respond with anything else.
+
+  ${message.content}
+
+  Assistant:`;
+
+        const searchResponse = await axios.post(
+          "https://api.anthropic.com/v1/complete",
+          {
+            prompt: searchPrompt,
+            model: this.model,
+            max_tokens_to_sample: 50,
+            stop_sequences: ["\n\nHuman:"],
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${this.claudeApiKey}`,
+            },
+          },
+        );
+
+        const response = searchResponse.data.completion.trim();
+        if (!response.startsWith("false")) {
+          googleResults = await this.searchGoogle(response);
+          if (googleResults.length === 0) {
+            googleResults = null;
+          }
+        }
+      }
+
+      let systemMessage = this.personality;
+      if (googleResults) {
+        systemMessage += `\n\nI searched the internet for you and found this information: ${JSON.stringify(googleResults)}`;
+      }
+
+      let messages = [];
+      if (message.previousMessage) {
+        messages.push(`Assistant: ${systemMessage}`);
+        messages.push(`Human: ${message.previousMessage}`);
+      } else {
+        messages.push(`Assistant: ${systemMessage}`);
+      }
+
+      if (message.repliedContent) {
+        messages.push(`Assistant: ${message.repliedContent}`);
+        messages.push(`Human: ${message.content}`);
+      } else {
+        messages.push(`Human: ${message.content}`);
+      }
+
+      messages.push(`Assistant:`);
+
+      const prompt = messages.join("\n\n");
+
       const response = await axios.post(
         "https://api.anthropic.com/v1/complete",
         {
           prompt: prompt,
           model: this.model,
-          max_tokens_to_sample: 150,
+          max_tokens_to_sample: 1000,
           stop_sequences: ["\n\nHuman:"],
         },
         {
@@ -227,6 +316,7 @@ class AIChatBot {
           },
         },
       );
+
       return response.data.completion.trim();
     } catch (error) {
       console.error("Error generating Claude response:", error);
