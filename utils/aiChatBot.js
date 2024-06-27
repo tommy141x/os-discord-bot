@@ -36,7 +36,7 @@ class AIChatBot {
   async loadPersonality() {
     this.personality = this.settings.personality;
     this.personality +=
-      "\nYou can use placeholders in your responses! You can use {mention} to ping the user who triggered you, {username} to get their username, or just {name} (preferred) to get their name without pinging them. You can also use {servername} to get the name of the server you are in and represent. If a user says @You they are mentioning you.";
+      "\nYou can use case sensative placeholders in your responses! You can use {mention} to ping the user who triggered you, {username} to get their username, or just {name} (preferred) to get their name without pinging them. You can also use {servername} to get the name of the server you are in and represent. If a user says @You they are mentioning you.";
     const date = new Date();
     const options = {
       year: "numeric", // 'numeric'

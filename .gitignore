@@ -12,7 +12,18 @@ config.json
 livecord-twitch.json
 livecord-youtube.json
 db.json
-public/
+
+# Ignore everything in the public folder
+/public/*
+
+# Except for the media folder
+!/public/media
+
+# Ignore everything inside the media folder
+/public/media/*
+
+# But keep the favicon.ico file
+!/public/media/favicon.ico
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
