@@ -165,7 +165,7 @@ function getDefaultSettings() {
       logMessageCreation: { enabled: true, channelId: "" },
       logMessageDeletions: { enabled: false, channelId: "" },
       logMessageEdits: { enabled: false, channelId: "" },
-      logVoiceStateUpdates: { enabled: false, channelId: "" },
+      logVoiceStateUpdates: { enabled: true, channelId: "" },
       logInviteCreations: { enabled: false, channelId: "" },
       logInviteDeletions: { enabled: false, channelId: "" },
       logServerUpdates: { enabled: false, channelId: "" },

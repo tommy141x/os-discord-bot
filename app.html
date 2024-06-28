@@ -10,11 +10,11 @@
             integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
             crossorigin="anonymous"
         ></script>
-        <link rel="stylesheet" href="./public/panelTheme.css" />
         <link
             rel="stylesheet"
             href="https://unpkg.com/franken-ui-releases@0.0.13/dist/default.min.css"
         />
+        <link rel="stylesheet" href="./public/panelTheme.css" />
         <style>
             .sidebar {
                 width: 20rem;
@@ -26,6 +26,7 @@
                 flex-direction: column;
                 align-items: center; /* Centering the buttons vertically */
                 overflow-y: auto; /* Added to enable scrolling */
+                justify-content: center;
             }
             .sidebar-header {
                 margin-bottom: 2rem;
@@ -54,11 +55,10 @@
             }
 
             .page {
-                height: 90%;
+                height: 100%;
                 width: 80%;
                 overflow: auto;
                 border-radius: 1rem;
-                margin: 1rem;
                 padding: 1rem;
             }
 
@@ -106,7 +106,7 @@
         <div id="preloader" class="uk-background-default"></div>
         <div class="sidebar">
             <div class="sidebar-header">
-                <h1 class="sidebar-header-title text-foreground">
+                <h1 class="uk-h1 sidebar-header-title text-foreground">
                     OS Discord Bot
                 </h1>
             </div>
@@ -338,7 +338,7 @@
                 }
             </style>
             <div
-                class="user-profile uk-background-secondary uk-width-1-1"
+                class="user-profile uk-background-muted uk-width-1-1"
                 style="width: 90%"
             >
                 <div class="avatar-container">
@@ -346,8 +346,8 @@
                     <div class="status-indicator"></div>
                 </div>
                 <div class="user-info uk-text text-primary">
-                    <div class="username text-primary">Tommy</div>
-                    <div class="user-status text-primary">
+                    <div class="username text-foreground">Tommy</div>
+                    <div class="user-status text-foreground">
                         ill be on tmrw night...
                     </div>
                 </div>
@@ -480,7 +480,7 @@
                 </script>
             </div>
         </div>
-        <div id="overview" class="page uk-background-secondary">
+        <div id="overview" class="page uk-background">
             <link
                 rel="stylesheet"
                 href="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.css"
@@ -519,10 +519,10 @@
                 }
                 .ct-series-a .ct-line,
                 .ct-series-a .ct-point {
-                    stroke: rgba(75, 192, 192, 1);
+                    stroke: hsl(var(--foreground)) !important;
                 }
                 .ct-series-a .ct-area {
-                    fill: rgba(75, 192, 192, 1);
+                    fill: hsl(var(--primary)) !important;
                 }
                 .header-container {
                     display: flex;
@@ -805,11 +805,11 @@
                                     "beforeend",
                                     `
                                     <tr>
-                                        <td style="display: flex; align-items: center; vertical-align: middle;">
+                                        <td style="display: flex; align-items: center; vertical-align: middle;" class="text-foreground">
                                             <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
                                             ${member.displayName}
                                         </td>
-                                        <td style="vertical-align: middle;">
+                                        <td style="vertical-align: middle;" class="text-foreground">
                                             ${member.messages}
                                         </td>
                                     </tr>
@@ -828,11 +828,11 @@
                                 "beforeend",
                                 `
                                 <tr>
-                                    <td style="display: flex; align-items: center; vertical-align: middle;">
+                                    <td style="display: flex; align-items: center; vertical-align: middle;" class="text-foreground">
                                         <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
                                         ${member.displayName}
                                     </td>
-                                    <td style="vertical-align: middle;">
+                                    <td style="vertical-align: middle;" class="text-foreground">
                                         ${hours} hours ${minutes} minutes
                                     </td>
                                 </tr>
@@ -846,11 +846,11 @@
                                 "beforeend",
                                 `
                                 <tr>
-                                    <td style="display: flex; align-items: center; vertical-align: middle;">
+                                    <td style="display: flex; align-items: center; vertical-align: middle;" class="text-foreground">
                                         <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
                                         ${member.displayName}
                                     </td>
-                                    <td style="vertical-align: middle;">
+                                    <td style="vertical-align: middle;" class="text-foreground">
                                         ${member.total}
                                     </td>
                                 </tr>
@@ -865,7 +865,7 @@
             </script>
         </div>
 
-        <div id="server-settings" class="page uk-background-secondary">
+        <div id="server-settings" class="page uk-background">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Server Settings
             </h1>
@@ -1109,7 +1109,7 @@
                 });
             </script>
         </div>
-        <div id="embed-messages" class="page uk-background-secondary">
+        <div id="embed-messages" class="page uk-background">
             <link
                 rel="stylesheet"
                 href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"
@@ -1303,7 +1303,8 @@
 
                 .filepond--panel-root {
                     background-color: transparent;
-                    border: 2px solid #2c3340;
+                    border: 2px solid;
+                    border-color: hsl(var(--border)) !important;
                     position: relative;
                 }
 
@@ -1312,8 +1313,8 @@
                 }
 
                 .filepond--root:hover .filepond--panel-root {
-                    border-color: #4a90e2; /* Change to your desired hover color */
-                    background-color: rgba(74, 144, 226, 0.1);
+                    border-color: hsl(var(--primary)) !important;
+                    background-color: hsla(var(--muted), 0.8) !important;
                 }
 
                 .filepond--credits {
@@ -1324,7 +1325,7 @@
                     background-color: var(--background);
                     border-width: 0.1rem;
                     border-style: solid;
-                    border-color: #828282;
+                    border-color: hsl(var(--border)) !important;
                     border-radius: 0.5rem;
                 }
             </style>
@@ -1823,7 +1824,7 @@
             </script>
         </div>
 
-        <div id="utility" class="page uk-background-secondary uk-padding">
+        <div id="utility" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Utility Settings
             </h1>
@@ -2128,7 +2129,7 @@
             });
         </script>
 
-        <div id="moderation" class="page uk-background-secondary uk-padding">
+        <div id="moderation" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Moderation Settings
             </h1>
@@ -2329,7 +2330,7 @@
                 });
             });
         </script>
-        <div id="automod" class="page uk-background-secondary uk-padding">
+        <div id="automod" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Auto Moderation Settings
             </h1>
@@ -2716,10 +2717,7 @@
                 });
             </script>
         </div>
-        <div
-            id="welcome-goodbye"
-            class="page uk-background-secondary uk-padding"
-        >
+        <div id="welcome-goodbye" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Welcome & Goodbye Settings
             </h1>
@@ -2956,10 +2954,7 @@
                 });
             </script>
         </div>
-        <div
-            id="auto-responder"
-            class="page uk-background-secondary uk-padding"
-        >
+        <div id="auto-responder" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Auto Responder Settings
             </h1>
@@ -3271,7 +3266,7 @@
                 });
             </script>
         </div>
-        <div id="auto-roles" class="page uk-background-secondary uk-padding">
+        <div id="auto-roles" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Auto Roles Settings
             </h1>
@@ -3429,7 +3424,7 @@
                 });
             </script>
         </div>
-        <div id="logs" class="page uk-background-secondary">
+        <div id="logs" class="page uk-background">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Log Settings
             </h1>
@@ -3478,7 +3473,7 @@
                             </div>
                             <div class="uk-width-auto">
                               <label class="uk-switch">
-                                <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? "checked" : ""}>
+                                <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? "checked" : ""} ${key === "logMessageCreation" || key === "logMemberLeaves" || key === "logVoiceStateUpdates" || key === "logMemberJoins" ? "disabled" : ""}>
                                 <span class="uk-switch-slider"></span>
                               </label>
                             </div>
@@ -3556,10 +3551,7 @@
                 });
             </script>
         </div>
-        <div
-            id="temporary-channels"
-            class="page uk-background-secondary uk-padding"
-        >
+        <div id="temporary-channels" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Temporary Channel Settings
             </h1>
@@ -3740,7 +3732,7 @@
                 });
             </script>
         </div>
-        <div id="ai-chatbot" class="page uk-background-secondary uk-padding">
+        <div id="ai-chatbot" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 AI Settings
             </h1>
@@ -4030,7 +4022,7 @@
                 });
             </script>
         </div>
-        <div id="social-alerts" class="page uk-background-secondary uk-padding">
+        <div id="social-alerts" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Social Alert Settings
             </h1>
@@ -4314,7 +4306,7 @@
                 });
             </script>
         </div>
-        <div id="control-panel-logs" class="page uk-background-secondary">
+        <div id="control-panel-logs" class="page uk-background">
             <div class="uk-container uk-margin-top">
                 <table class="uk-table uk-table-hover">
                     <thead>
@@ -4407,7 +4399,7 @@
                 loadControlPanelLogs();
             </script>
         </div>
-        <div id="bot-settings" class="page uk-background-secondary uk-padding">
+        <div id="bot-settings" class="page uk-background uk-padding">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Bot Presence Settings
             </h1>
@@ -4644,7 +4636,7 @@
             </script>
         </div>
 
-        <div id="mod-actions" class="page uk-background-secondary">
+        <div id="mod-actions" class="page uk-background">
             <div class="uk-container uk-margin-top">
                 <table class="uk-table uk-table-hover">
                     <thead>
