@@ -763,8 +763,8 @@ class CommandHandler {
 
     const userPoints = {};
     const voiceJoinTimes = {};
-    const messageMultiplier = 2; // Multiplier for message points
-    const voiceMultiplier = 3; // Multiplier for voice points
+    const messageMultiplier = 3; // Multiplier for message points
+    const voiceMultiplier = 2; // Multiplier for voice points
 
     logs.forEach((log) => {
       try {
