@@ -486,7 +486,7 @@
                 href="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.css"
             />
             <script src="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
-
+            <script src="https://cdn.jsdelivr.net/npm/chartist-plugin-pointlabels@0.0.6/dist/chartist-plugin-pointlabels.min.js"></script>
             <style>
                 .card-container-overview {
                     display: grid;
@@ -523,6 +523,10 @@
                 }
                 .ct-series-a .ct-area {
                     fill: hsl(var(--primary)) !important;
+                }
+                .ct-label {
+                    color: hsl(var(--foreground)) !important;
+                    fill: hsl(var(--foreground)) !important;
                 }
                 .header-container {
                     display: flex;
@@ -641,7 +645,7 @@
                 document.addEventListener("DOMContentLoaded", async () => {
                     try {
                         const response = await fetch("/api/guild");
-                        const { guildData, stats, leaderboard, logs } =
+                        let { guildData, stats, leaderboard, logs } =
                             await response.json();
 
                         // Update guild information
@@ -649,6 +653,10 @@
                             guildData.icon;
                         document.getElementById("guildName").textContent =
                             guildData.name;
+
+                        logs = logs || [];
+                        stats = stats || [];
+                        leaderboard = leaderboard || [];
 
                         const totalMembers =
                             stats[stats.length - 1]?.totalMembers || 0;
@@ -687,30 +695,93 @@
                         );
 
                         // Chart Data
-                        const labels = filteredStats.map((stat) =>
-                            new Date(stat.timestamp).toLocaleTimeString(),
+                        const labels = downsampleArray(
+                            filteredStats.map((stat) =>
+                                new Date(stat.timestamp).toLocaleTimeString(),
+                            ),
                         );
-                        const totalMembersData = filteredStats.map(
-                            (stat) => stat.totalMembers,
+                        const totalMembersData = downsampleArray(
+                            stats.map((stat) => stat.totalMembers),
                         );
-                        const onlineMembersData = filteredStats.map(
-                            (stat) => stat.onlineMembers,
+
+                        const onlineMembersData = downsampleArray(
+                            filteredStats.map((stat) => stat.onlineMembers),
                         );
-                        const messagesData = filteredLogs.map(
-                            (log) =>
-                                logs.filter(
-                                    (innerLog) =>
-                                        innerLog.type === "new-message" &&
-                                        new Date(innerLog.timestamp) >=
-                                            new Date(log.timestamp) &&
-                                        new Date(innerLog.timestamp) <
-                                            new Date(log.timestamp).setMinutes(
-                                                new Date(
-                                                    log.timestamp,
-                                                ).getMinutes() + 1,
-                                            ),
-                                ).length,
+                        const messagesData = createMessageDataFor24Hours(
+                            logs,
+                            10,
                         );
+
+                        console.log(messagesData);
+
+                        function downsampleArray(arr, maxPoints = 10) {
+                            if (arr.length <= maxPoints) {
+                                return arr;
+                            }
+
+                            const step = Math.ceil(arr.length / maxPoints);
+                            const downsampledStats = [];
+
+                            for (let i = 0; i < arr.length; i += step) {
+                                downsampledStats.push(arr[i]);
+                            }
+
+                            return downsampledStats;
+                        }
+
+                        function downsampleArrayWithSumming(
+                            arr,
+                            maxPoints = 10,
+                        ) {
+                            if (arr.length <= maxPoints) {
+                                return arr;
+                            }
+                            const groupSize = Math.ceil(arr.length / maxPoints);
+                            const downsampledArray = [];
+                            for (let i = 0; i < arr.length; i += groupSize) {
+                                const group = arr.slice(i, i + groupSize);
+                                const sum = group.reduce(
+                                    (sum, value) => sum + value,
+                                    0,
+                                );
+                                downsampledArray.push(sum);
+                            }
+                            return downsampledArray;
+                        }
+
+                        function createMessageDataFor24Hours(
+                            logs,
+                            numPeriods = 10,
+                        ) {
+                            const now = new Date();
+                            const past24Hours = new Date(
+                                now - 24 * 60 * 60 * 1000,
+                            );
+                            const periodDuration =
+                                (24 * 60 * 60 * 1000) / numPeriods; // duration of each period in milliseconds
+
+                            const messagesData = new Array(numPeriods).fill(0);
+
+                            logs.forEach((log) => {
+                                if (log.type === "new-message") {
+                                    const logTime = new Date(log.timestamp);
+                                    if (
+                                        logTime >= past24Hours &&
+                                        logTime <= now
+                                    ) {
+                                        const periodIndex = Math.floor(
+                                            (logTime - past24Hours) /
+                                                periodDuration,
+                                        );
+                                        if (periodIndex < numPeriods) {
+                                            messagesData[periodIndex]++;
+                                        }
+                                    }
+                                }
+                            });
+
+                            return messagesData;
+                        }
 
                         // Function to create and configure a Chartist line chart
                         function createChart(chartId, labels, seriesData) {
@@ -721,7 +792,7 @@
                                     series: [seriesData],
                                 },
                                 {
-                                    showPoint: false,
+                                    showPoint: true,
                                     lineSmooth: Chartist.Interpolation.simple({
                                         divisor: 2,
                                     }),
@@ -738,8 +809,18 @@
                                         showLabel: false,
                                         offset: 0,
                                     },
-                                    chartPadding: 0,
+                                    chartPadding: 7,
                                     low: 0,
+                                    plugins: [
+                                        Chartist.plugins.ctPointLabels({
+                                            textAnchor: "middle",
+                                            labelInterpolationFnc: function (
+                                                value,
+                                            ) {
+                                                return Math.round(value) || 0;
+                                            },
+                                        }),
+                                    ],
                                 },
                             );
 

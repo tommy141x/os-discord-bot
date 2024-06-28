@@ -757,6 +757,10 @@ class CommandHandler {
   }
 
   calculatePoints(logs) {
+    if (!Array.isArray(logs) || logs.length === 0) {
+      return {};
+    }
+
     const userPoints = {};
     const voiceJoinTimes = {};
     const messageMultiplier = 2; // Multiplier for message points
