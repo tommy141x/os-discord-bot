@@ -131,4 +131,4 @@ To configure the project, rename `config.example.json` to `config.json` file in 
 Contributions to this project are encouraged and appreciated. Please feel free to submit pull requests or open issues if you encounter any problems or have suggestions for improvements.
 
 ## License
-This project is open source and available under the [MIT License](LICENSE).
+This project is open source and available under the [Creative Commons Attribution-ShareAlike 4.0 International License](LICENSE).
