@@ -78,6 +78,8 @@ To configure the project, rename `config.example.json` to `config.json` file in 
 - `claudeApiKey`: Your Claude API key.
 - `sessionSecret`: A secret key for session management.
 
+Also rename `db.example.json` to `db.json` and that's it.
+
 
 ## Custom Theming
 
