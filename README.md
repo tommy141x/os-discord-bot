@@ -85,6 +85,33 @@ To configure the project, rename `config.example.json` to `config.json` file in 
 2. Customize the theme to your liking
 3. Copy the generated CSS and paste it into `public/theme.css`
 
+## Upgrading
+
+## Using Node.js
+
+1. Pull the latest changes from the repository.
+2. Update the dependencies:
+
+   ```bash
+   pnpm i
+   ```
+3. Start the bot:
+
+   ```bash
+   pnpm start
+   ```
+4. Visit `http://localhost:3000` in your browser to access the dashboard.
+
+## Using Docker
+
+1. Pull the latest changes from the repository.
+2. Rebuild the containers:
+
+   ```bash
+   docker-compose up --build
+   ```
+3. Visit `http://localhost:3000` in your browser to access the dashboard.
+
 ## Technologies Used:
 
 - **Backend Technologies:**
