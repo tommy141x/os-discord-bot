@@ -10,11 +10,11 @@
             integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
             crossorigin="anonymous"
         ></script>
+        <link rel="stylesheet" href="./public/panelTheme.css" />
         <link
             rel="stylesheet"
             href="https://unpkg.com/franken-ui-releases@0.0.13/dist/default.min.css"
         />
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
             .sidebar {
                 width: 20rem;
@@ -330,7 +330,6 @@
                 }
 
                 .username {
-                    color: #ffffff;
                     font-weight: bold;
                 }
 
@@ -346,7 +345,7 @@
                     <img src="" alt="User Avatar" class="avatar" />
                     <div class="status-indicator"></div>
                 </div>
-                <div class="user-info text-foreground">
+                <div class="user-info uk-text text-primary">
                     <div class="username text-primary">Tommy</div>
                     <div class="user-status text-primary">
                         ill be on tmrw night...
@@ -482,18 +481,27 @@
             </div>
         </div>
         <div id="overview" class="page uk-background-secondary">
+            <link
+                rel="stylesheet"
+                href="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.css"
+            />
+            <script src="//cdn.jsdelivr.net/chartist.js/latest/chartist.min.js"></script>
+
             <style>
-                .card-container {
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: space-around;
-                    flex-wrap: wrap;
+                .card-container-overview {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 2fr 3fr; /* First row 2/3 height of second row */
                     gap: 1rem;
-                    align-items: center;
+                    padding: 1rem;
+                    height: 90%; /* Make container take full height */
                 }
-                .uk-card {
-                    position: relative;
+
+                .uk-card-overview {
+                    height: 100%; /* Make cards take full height */
+                    overflow: hidden; /* Ensure cards do not scroll */
                 }
+
                 .card-overlay {
                     position: absolute;
                     top: 1rem;
@@ -501,6 +509,20 @@
                     font-size: 1.5rem;
                     font-weight: bold;
                     z-index: 10;
+                }
+                .ct-chart {
+                    position: absolute;
+                    width: 102%;
+                    height: 80%;
+                    bottom: -1%;
+                    left: -1%;
+                }
+                .ct-series-a .ct-line,
+                .ct-series-a .ct-point {
+                    stroke: rgba(75, 192, 192, 1);
+                }
+                .ct-series-a .ct-area {
+                    fill: rgba(75, 192, 192, 1);
                 }
                 .header-container {
                     display: flex;
@@ -529,340 +551,320 @@
                 </div>
             </div>
 
-            <style>
-                .card-container-overview {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    grid-gap: 1rem;
-                    padding: 1rem;
-                    max-height: calc(2 * (50vh - 1rem));
-                    overflow-y: auto;
-                }
-                .uk-card-overview {
-                    position: relative;
-                    width: 100%;
-                    height: calc(30vh - 1rem);
-                    min-height: 200px;
-                }
-                .card-overlay {
-                    position: absolute;
-                    top: 1rem;
-                    left: 1rem;
-                    font-size: 1.5rem;
-                    font-weight: bold;
-                    z-index: 10;
-                }
-                .no-padding {
-                    padding: 0 !important;
-                    overflow: hidden;
-                }
-                #totalMembersChart,
-                #onlineMembersChart,
-                #joinsChart,
-                #leavesChart,
-                #messagesChart {
-                    position: absolute;
-                    width: 102% !important; /* Slightly larger than the card */
-                    height: 80% !important; /* 80% of the card's height */
-                    bottom: -1%; /* Align to bottom with slight overflow */
-                    left: -1%; /* Center horizontally with slight overflow */
-                }
-            </style>
-
             <div class="card-container-overview">
                 <div
-                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                    class="uk-card uk-card-overview uk-card-default uk-card-body"
                 >
                     <div class="card-overlay" id="totalMembersText">
                         0 Total Members
                     </div>
-                    <canvas id="totalMembersChart"></canvas>
+                    <div class="ct-chart" id="totalMembersChart"></div>
                 </div>
                 <div
-                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                    class="uk-card uk-card-overview uk-card-default uk-card-body"
                 >
                     <div class="card-overlay" id="onlineMembersText">
                         Online Members: 0
                     </div>
-                    <canvas id="onlineMembersChart"></canvas>
+                    <div class="ct-chart" id="onlineMembersChart"></div>
                 </div>
                 <div
-                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
-                >
-                    <div class="card-overlay" id="joins24HoursText">
-                        Joins (Last 24 Hours): 0
-                    </div>
-                    <canvas id="joinsChart"></canvas>
-                </div>
-                <div
-                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
-                >
-                    <div class="card-overlay" id="leaves24HoursText">
-                        Leaves (Last 24 Hours): 0
-                    </div>
-                    <canvas id="leavesChart"></canvas>
-                </div>
-                <div
-                    class="uk-card uk-card-overview uk-card-default uk-card-body no-padding"
+                    class="uk-card uk-card-overview uk-card-default uk-card-body"
                 >
                     <div class="card-overlay" id="messages24HoursText">
                         Messages (Last 24 Hours): 0
                     </div>
-                    <canvas id="messagesChart"></canvas>
+                    <div class="ct-chart" id="messagesChart"></div>
+                </div>
+
+                <!-- Leaderboard Cards -->
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body"
+                >
+                    <div class="card-overlay">Message Leaderboard</div>
+                    <table
+                        class="uk-table uk-table-hover uk-text text-primary"
+                        style="margin-top: 2.8rem"
+                    >
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Messages</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topMessagePointsTable">
+                            <!-- Leaderboard rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body"
+                >
+                    <div class="card-overlay">Voice Leaderboard</div>
+                    <table
+                        class="uk-table uk-table-hover uk-text text-primary"
+                        style="margin-top: 2.8rem"
+                    >
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Voice Time (s)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topVoicePointsTable">
+                            <!-- Leaderboard rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div
+                    class="uk-card uk-card-overview uk-card-default uk-card-body"
+                >
+                    <div class="card-overlay">Overall Leaderboard</div>
+                    <table
+                        class="uk-table uk-table-hover uk-text text-primary"
+                        style="margin-top: 2.8rem"
+                    >
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Total Points</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topTotalPointsTable">
+                            <!-- Leaderboard rows will be inserted here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             <script>
                 document.addEventListener("DOMContentLoaded", async () => {
-                    const response = await fetch("/api/guild");
-                    const data = await response.json();
-                    const { guildData, stats, logs } = data;
+                    try {
+                        const response = await fetch("/api/guild");
+                        const { guildData, stats, leaderboard, logs } =
+                            await response.json();
 
-                    // Update guild information
-                    document.getElementById("guildIcon").src = guildData.icon;
-                    document.getElementById("guildName").textContent =
-                        guildData.name;
+                        // Update guild information
+                        document.getElementById("guildIcon").src =
+                            guildData.icon;
+                        document.getElementById("guildName").textContent =
+                            guildData.name;
 
-                    const totalMembers =
-                        stats[stats.length - 1]?.totalMembers || 0;
-                    const onlineMembers =
-                        stats[stats.length - 1]?.onlineMembers || 0;
+                        const totalMembers =
+                            stats[stats.length - 1]?.totalMembers || 0;
+                        const onlineMembers =
+                            stats[stats.length - 1]?.onlineMembers || 0;
 
-                    document.getElementById("totalMembersText").textContent =
-                        `${totalMembers} Total Members`;
-                    document.getElementById("onlineMembersText").textContent =
-                        `${onlineMembers} Online Members`;
+                        document.getElementById(
+                            "totalMembersText",
+                        ).textContent = `${totalMembers} Total Members`;
+                        document.getElementById(
+                            "onlineMembersText",
+                        ).textContent = `${onlineMembers} Online Members`;
+                        const now = new Date();
+                        const past24Hours = new Date(
+                            now.getTime() - 24 * 60 * 60 * 1000,
+                        );
 
-                    // Get current timestamp and timestamp for 24 hours ago
-                    const now = new Date();
-                    const twentyFourHoursAgo = new Date(
-                        now.getTime() - 24 * 60 * 60 * 1000,
-                    );
+                        const messagesLast24Hours = logs.filter(
+                            (log) =>
+                                log.type === "new-message" &&
+                                new Date(log.timestamp) >= past24Hours,
+                        ).length;
 
-                    // Filter logs for the last 24 hours
-                    const logsLast24Hours = (logs || []).filter(
-                        (log) => new Date(log.timestamp) >= twentyFourHoursAgo,
-                    );
+                        document.getElementById(
+                            "messages24HoursText",
+                        ).textContent =
+                            `Messages (Last 24 Hours): ${messagesLast24Hours}`;
 
-                    function convertTo12Hour(time) {
-                        const [hours, minutes] = time.split(":");
-                        let h = parseInt(hours);
-                        const ampm = h >= 12 ? "PM" : "AM";
-                        h = h % 12;
-                        h = h ? h : 12; // the hour '0' should be '12'
-                        return `${h}:${minutes} ${ampm}`;
-                    }
+                        // Filter stats to only include data from the past 24 hours
+                        const filteredStats = stats.filter(
+                            (stat) => new Date(stat.timestamp) >= past24Hours,
+                        );
 
-                    // Function to group logs by 30 minutes and sum the values
-                    function groupLogsByHalfHour(logs, type) {
-                        const grouped = {};
+                        const filteredLogs = logs.filter(
+                            (log) => new Date(log.timestamp) >= past24Hours,
+                        );
 
-                        // Initialize all 30-minute intervals in the last 24 hours with 0
-                        for (
-                            let d = new Date(twentyFourHoursAgo);
-                            d <= now;
-                            d.setMinutes(d.getMinutes() + 30)
-                        ) {
-                            const halfHour =
-                                Math.floor(d.getMinutes() / 30) * 30;
-                            const key = `${d.getHours()}:${halfHour === 0 ? "00" : halfHour}`;
-                            const formattedKey = convertTo12Hour(key);
-                            grouped[formattedKey] = 0;
+                        // Chart Data
+                        const labels = filteredStats.map((stat) =>
+                            new Date(stat.timestamp).toLocaleTimeString(),
+                        );
+                        const totalMembersData = filteredStats.map(
+                            (stat) => stat.totalMembers,
+                        );
+                        const onlineMembersData = filteredStats.map(
+                            (stat) => stat.onlineMembers,
+                        );
+                        const messagesData = filteredLogs.map(
+                            (log) =>
+                                logs.filter(
+                                    (innerLog) =>
+                                        innerLog.type === "new-message" &&
+                                        new Date(innerLog.timestamp) >=
+                                            new Date(log.timestamp) &&
+                                        new Date(innerLog.timestamp) <
+                                            new Date(log.timestamp).setMinutes(
+                                                new Date(
+                                                    log.timestamp,
+                                                ).getMinutes() + 1,
+                                            ),
+                                ).length,
+                        );
+
+                        // Function to create and configure a Chartist line chart
+                        function createChart(chartId, labels, seriesData) {
+                            var chart = new Chartist.Line(
+                                chartId,
+                                {
+                                    labels: labels,
+                                    series: [seriesData],
+                                },
+                                {
+                                    showPoint: false,
+                                    lineSmooth: Chartist.Interpolation.simple({
+                                        divisor: 2,
+                                    }),
+                                    showArea: true,
+                                    fullWidth: true,
+                                    showLabel: false,
+                                    axisX: {
+                                        showGrid: false,
+                                        showLabel: false,
+                                        offset: 0,
+                                    },
+                                    axisY: {
+                                        showGrid: false,
+                                        showLabel: false,
+                                        offset: 0,
+                                    },
+                                    chartPadding: 0,
+                                    low: 0,
+                                },
+                            );
+
+                            chart.on("draw", function (data) {
+                                if (
+                                    data.type === "line" ||
+                                    data.type === "area"
+                                ) {
+                                    data.element.animate({
+                                        d: {
+                                            begin: 2000 * data.index,
+                                            dur: 2000,
+                                            from: data.path
+                                                .clone()
+                                                .scale(1, 0)
+                                                .translate(
+                                                    0,
+                                                    data.chartRect.height(),
+                                                )
+                                                .stringify(),
+                                            to: data.path.clone().stringify(),
+                                            easing: Chartist.Svg.Easing
+                                                .easeOutQuint,
+                                        },
+                                    });
+                                }
+                            });
+
+                            return chart;
                         }
 
-                        // Add log counts to the respective 30-minute intervals
-                        logs.filter((log) => log.type === type).forEach(
-                            (log) => {
-                                const timestamp = new Date(log.timestamp);
-                                const halfHour =
-                                    Math.floor(timestamp.getMinutes() / 30) *
-                                    30;
-                                const key = `${timestamp.getHours()}:${halfHour === 0 ? "00" : halfHour}`;
-                                const formattedKey = convertTo12Hour(key);
+                        // Create charts using the function
+                        var totalMembersChart = createChart(
+                            "#totalMembersChart",
+                            labels,
+                            totalMembersData,
+                        );
+                        var onlineMembersChart = createChart(
+                            "#onlineMembersChart",
+                            labels,
+                            onlineMembersData,
+                        );
+                        var messagesChart = createChart(
+                            "#messagesChart",
+                            labels,
+                            messagesData,
+                        );
 
-                                grouped[formattedKey] += 1;
+                        // Update Leaderboards
+                        const topMessagePointsTable = document.getElementById(
+                            "topMessagePointsTable",
+                        );
+                        const topVoicePointsTable = document.getElementById(
+                            "topVoicePointsTable",
+                        );
+                        const topTotalPointsTable = document.getElementById(
+                            "topTotalPointsTable",
+                        );
+
+                        leaderboard.topMessagePoints.forEach(
+                            (member, index) => {
+                                topMessagePointsTable.insertAdjacentHTML(
+                                    "beforeend",
+                                    `
+                                    <tr>
+                                        <td style="display: flex; align-items: center; vertical-align: middle;">
+                                            <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
+                                            ${member.displayName}
+                                        </td>
+                                        <td style="vertical-align: middle;">
+                                            ${member.messages}
+                                        </td>
+                                    </tr>
+
+                            `,
+                                );
                             },
                         );
 
-                        return Object.entries(grouped).map(([time, count]) => ({
-                            x: time,
-                            y: count,
-                        }));
+                        leaderboard.topVoicePoints.forEach((member, index) => {
+                            const hours = Math.floor(member.voiceTime / 3600);
+                            const minutes = Math.floor(
+                                (member.voiceTime % 3600) / 60,
+                            );
+                            topVoicePointsTable.insertAdjacentHTML(
+                                "beforeend",
+                                `
+                                <tr>
+                                    <td style="display: flex; align-items: center; vertical-align: middle;">
+                                        <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
+                                        ${member.displayName}
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        ${hours} hours ${minutes} minutes
+                                    </td>
+                                </tr>
+
+                            `,
+                            );
+                        });
+
+                        leaderboard.topTotalPoints.forEach((member, index) => {
+                            topTotalPointsTable.insertAdjacentHTML(
+                                "beforeend",
+                                `
+                                <tr>
+                                    <td style="display: flex; align-items: center; vertical-align: middle;">
+                                        <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
+                                        ${member.displayName}
+                                    </td>
+                                    <td style="vertical-align: middle;">
+                                        ${member.total}
+                                    </td>
+                                </tr>
+
+                            `,
+                            );
+                        });
+                    } catch (error) {
+                        console.error("Error fetching guild data:", error);
                     }
-
-                    // Count joins, leaves, and messages in the last 24 hours
-                    const joins = groupLogsByHalfHour(logsLast24Hours, "join");
-                    const leaves = groupLogsByHalfHour(logsLast24Hours, "left");
-                    const messages = groupLogsByHalfHour(
-                        logsLast24Hours,
-                        "new-message",
-                    );
-
-                    document.getElementById("joins24HoursText").textContent =
-                        `${joins.reduce((acc, cur) => acc + cur.y, 0)} Joins (Last 24 Hours)`;
-                    document.getElementById("leaves24HoursText").textContent =
-                        `${leaves.reduce((acc, cur) => acc + cur.y, 0)} Leaves (Last 24 Hours)`;
-                    document.getElementById("messages24HoursText").textContent =
-                        `${messages.reduce((acc, cur) => acc + cur.y, 0)} Messages (Last 24 Hours)`;
-
-                    // Prepare data for charts
-                    const timestamps = stats.map((interval) => {
-                        const date = new Date(interval.timestamp);
-                        return convertTo12Hour(
-                            `${date.getHours()}:${date.getMinutes().toString().padStart(2, "0")}`,
-                        );
-                    });
-                    const totalMembersData = stats.map((interval) => ({
-                        x: convertTo12Hour(
-                            `${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, "0")}`,
-                        ),
-                        y: interval.totalMembers,
-                    }));
-                    const onlineMembersData = stats.map((interval) => ({
-                        x: convertTo12Hour(
-                            `${new Date(interval.timestamp).getHours()}:${new Date(interval.timestamp).getMinutes().toString().padStart(2, "0")}`,
-                        ),
-                        y: interval.onlineMembers,
-                    }));
-
-                    const chartOptions = {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        layout: {
-                            padding: {
-                                left: 0,
-                                right: 0,
-                                top: 0,
-                                bottom: 0,
-                            },
-                        },
-                        scales: {
-                            x: { display: false },
-                            y: { display: false, beginAtZero: true },
-                        },
-                        plugins: {
-                            legend: { display: false },
-                        },
-                    };
-
-                    const ctxTotalMembers = document
-                        .getElementById("totalMembersChart")
-                        .getContext("2d");
-                    const ctxOnlineMembers = document
-                        .getElementById("onlineMembersChart")
-                        .getContext("2d");
-                    const ctxJoins = document
-                        .getElementById("joinsChart")
-                        .getContext("2d");
-                    const ctxLeaves = document
-                        .getElementById("leavesChart")
-                        .getContext("2d");
-                    const ctxMessages = document
-                        .getElementById("messagesChart")
-                        .getContext("2d");
-
-                    const gradient = ctxTotalMembers.createLinearGradient(
-                        0,
-                        0,
-                        0,
-                        ctxTotalMembers.canvas.height,
-                    );
-                    gradient.addColorStop(0, "rgba(75, 192, 192, 1)");
-                    gradient.addColorStop(1, "rgba(153, 102, 255, 1)");
-
-                    // Create charts
-                    new Chart(ctxTotalMembers, {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Total Members",
-                                    data: totalMembersData,
-                                    borderColor: "rgba(75, 192, 192, 1)",
-                                    backgroundColor: gradient,
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(ctxOnlineMembers, {
-                        type: "line",
-                        data: {
-                            labels: timestamps,
-                            datasets: [
-                                {
-                                    label: "Online Members",
-                                    data: onlineMembersData,
-                                    borderColor: "rgba(54, 162, 235, 1)",
-                                    backgroundColor: gradient,
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(ctxJoins, {
-                        type: "line",
-                        data: {
-                            labels: joins.map((data) => data.x),
-                            datasets: [
-                                {
-                                    label: "Joins",
-                                    data: joins.map((data) => data.y),
-                                    borderColor: "rgba(255, 206, 86, 1)",
-                                    backgroundColor: gradient,
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(ctxLeaves, {
-                        type: "line",
-                        data: {
-                            labels: leaves.map((data) => data.x),
-                            datasets: [
-                                {
-                                    label: "Leaves",
-                                    data: leaves.map((data) => data.y),
-                                    borderColor: "rgba(255, 99, 132, 1)",
-                                    backgroundColor: gradient,
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
-
-                    new Chart(ctxMessages, {
-                        type: "line",
-                        data: {
-                            labels: messages.map((data) => data.x),
-                            datasets: [
-                                {
-                                    label: "Messages",
-                                    data: messages.map((data) => data.y),
-                                    borderColor: "rgba(153, 102, 255, 1)",
-                                    backgroundColor: gradient,
-                                    borderWidth: 2,
-                                    fill: true,
-                                },
-                            ],
-                        },
-                        options: chartOptions,
-                    });
                 });
             </script>
         </div>
+
         <div id="server-settings" class="page uk-background-secondary">
             <h1 class="uk-h1 text-foreground" style="margin: 1rem">
                 Server Settings
@@ -1487,7 +1489,6 @@
                     try {
                         const response = await fetch("/api/embeds");
                         const embeds = await response.json();
-                        console.log(embeds);
                         populateEmbedDropdown(embeds);
                     } catch (error) {
                         console.error("Failed to fetch embeds", error);

@@ -901,13 +901,88 @@ function setupRoutes() {
         roles,
       };
 
+      const points = commandHandler.calculatePoints(logs);
+
+      const members = await guild.members.fetch({
+        user: [
+          ...new Set([
+            ...Object.entries(points)
+              .sort(([, a], [, b]) => b.messages - a.messages)
+              .slice(0, 10) // Fetch more to ensure we get 5 valid entries
+              .map(([id]) => id),
+            ...Object.entries(points)
+              .sort(([, a], [, b]) => b.voiceTime - a.voiceTime)
+              .slice(0, 10)
+              .map(([id]) => id),
+            ...Object.entries(points)
+              .sort(([, a], [, b]) => b.total - a.total)
+              .slice(0, 10)
+              .map(([id]) => id),
+          ]),
+        ],
+      });
+
+      const displayNames = members.reduce((acc, member) => {
+        acc[member.id] = {
+          displayName: member.displayName || member.user.username,
+          avatarURL: member.user.displayAvatarURL({ format: "png", size: 128 }),
+        };
+        return acc;
+      }, {});
+
+      const filterValidEntries = (entries) => {
+        return entries
+          .filter(
+            ([id]) =>
+              displayNames[id]?.displayName && displayNames[id]?.avatarURL,
+          )
+          .slice(0, 5);
+      };
+
+      const topMessagePoints = filterValidEntries(
+        Object.entries(points).sort(([, a], [, b]) => b.messages - a.messages),
+      );
+
+      const topVoicePoints = filterValidEntries(
+        Object.entries(points).sort(
+          ([, a], [, b]) => b.voiceTime - a.voiceTime,
+        ),
+      );
+
+      const topTotalPoints = filterValidEntries(
+        Object.entries(points).sort(([, a], [, b]) => b.total - a.total),
+      );
+
+      const leaderboard = {
+        topMessagePoints: topMessagePoints.map(([id, data]) => ({
+          id,
+          displayName: displayNames[id].displayName,
+          avatarURL: displayNames[id].avatarURL,
+          messages: data.messages,
+        })),
+        topVoicePoints: topVoicePoints.map(([id, data]) => ({
+          id,
+          displayName: displayNames[id].displayName,
+          avatarURL: displayNames[id].avatarURL,
+          voiceTime: data.voiceTime,
+        })),
+        topTotalPoints: topTotalPoints.map(([id, data]) => ({
+          id,
+          displayName: displayNames[id].displayName,
+          avatarURL: displayNames[id].avatarURL,
+          total: data.total,
+        })),
+      };
+
       res.json({
         guildData,
         stats: stats,
         logs: logs,
+        leaderboard: leaderboard,
         controlLogs: controlLogs,
       });
     } catch (error) {
+      console.error(error);
       res.status(500).send(error.message);
     }
   });
@@ -1150,6 +1225,7 @@ function setupRoutes() {
 
   // Serve media files
   app.use("/media", express.static(path.join(__dirname, "public", "media")));
+  app.use("/public", express.static(path.join(__dirname, "public")));
 
   // Get audit log
   app.get("/api/audit-log", ensureAuthenticated, async (req, res) => {
