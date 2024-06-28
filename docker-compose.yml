@@ -9,4 +9,4 @@ services:
       - ./config.json:/app/config.json
       - ./db.json:/app/db.json
       - ./public:/app/public
-      - ./public/panelTheme.css:/app/public/panelTheme.css
+      - ./public/theme.css:/app/public/theme.css

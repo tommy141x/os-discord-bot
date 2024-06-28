@@ -18,7 +18,7 @@ db.json
 
 # Except for the media folder
 !/public/media
-!/public/panelTheme.css
+!/public/theme.css
 
 # Ignore everything inside the media folder
 /public/media/*
