@@ -25,6 +25,7 @@ const db = require("./utils/db");
 const Logger = require("./utils/logger");
 const GarbageCollector = require("./utils/garbageCollector");
 const CommandHandler = require("./utils/commands");
+const StreamRoleHandler = require("./utils/streamRoles");
 const SocialAlertSystem = require("./utils/socialAlerts");
 const AIChatBot = require("./utils/aiChatBot");
 
@@ -79,6 +80,7 @@ const client = new Client({
 let logger;
 let chatBot;
 let commandHandler;
+let streamRoleHandler;
 let socialAlertSystem;
 
 // Middleware to attach client to req object
@@ -101,6 +103,7 @@ client.once("ready", async () => {
   // Initialize logger and command handler
   logger = new Logger(client, settings.logSettings);
   commandHandler = new CommandHandler(client);
+  //streamRoleHandler = new StreamRoleHandler(client);
   socialAlertSystem = new SocialAlertSystem(client);
   await socialAlertSystem.setup();
 
@@ -175,12 +178,15 @@ function getDefaultSettings() {
       pingCommand: true,
       userCommand: true,
       serverCommand: true,
+      dreamCommand: true,
       pointsCommand: true,
       leaderboardCommand: true,
       customCommands: [],
     },
     moderationSettings: {
       modRoles: [],
+      stickyCommand: true,
+      giveawayCommand: true,
       setNickCommand: true,
       kickCommand: true,
       banCommand: true,
@@ -256,6 +262,7 @@ function setupEventListeners() {
   });
 
   client.on("messageCreate", autoMod);
+  client.on("messageCreate", commandHandler.handleStickyMessages);
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
@@ -1288,9 +1295,7 @@ function setupRoutes() {
       }
 
       activities = presence?.activities || [];
-      customStatus = activities.find(
-        (activity) => activity.type === "CUSTOM_STATUS",
-      );
+      customStatus = activities.find((activity) => activity.type === 4);
 
       res.json({
         name: member?.displayName || user.username,
@@ -1342,6 +1347,15 @@ function setupRoutes() {
       ) {
         commandHandler = new CommandHandler(client);
         logger.logControlEvent("updated command settings", req.user);
+      }
+
+      if (
+        JSON.stringify(currentSettings.socialAlertSettings) !==
+        JSON.stringify(updatedSettings.socialAlertSettings)
+      ) {
+        socialAlertSystem = new SocialAlertSystem(client);
+        //streamRoleHandler = new StreamRoleHandler(client);
+        logger.logControlEvent("updated social alert settings", req.user);
       }
 
       if (

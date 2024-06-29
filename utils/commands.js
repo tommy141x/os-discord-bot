@@ -1,7 +1,9 @@
 const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v9");
 const config = require("../config.json");
+const axios = require("axios");
 const { EmbedBuilder } = require("discord.js");
+const OpenAI = require("openai");
 const db = require("./db.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 
@@ -10,7 +12,29 @@ class CommandHandler {
     this.client = client;
     this.commands = [];
     this.settings = db.get("settings");
+    this.stickyMessages = new Map();
+    this.handleStickyMessages = this.handleStickyMessages.bind(this);
     this.registerCommands();
+  }
+
+  async handleStickyMessages(message) {
+    if (message.author.bot) return;
+
+    const channelId = message.channelId;
+    if (this.stickyMessages.has(channelId)) {
+      const stickyId = this.stickyMessages.get(channelId);
+      try {
+        const stickyMessage = await message.channel.messages.fetch(stickyId);
+        await stickyMessage.delete();
+        const newSticky = await message.channel.send({
+          embeds: [stickyMessage.embeds[0]],
+        });
+        this.stickyMessages.set(channelId, newSticky.id);
+      } catch (error) {
+        console.error("Failed to update sticky message:", error);
+        this.stickyMessages.delete(channelId);
+      }
+    }
   }
 
   registerCommands() {
@@ -132,6 +156,69 @@ class CommandHandler {
             .setTimestamp();
 
           await interaction.reply({ embeds: [embed] });
+        },
+      );
+    }
+
+    if (utilitySettings.dreamCommand) {
+      this.addCommand(
+        new SlashCommandBuilder()
+          .setName("dream")
+          .setDescription("Generate an image based on your description")
+          .addStringOption((option) =>
+            option
+              .setName("prompt")
+              .setDescription("Describe the image you want to generate")
+              .setRequired(true),
+          ),
+        async (interaction) => {
+          await interaction.deferReply();
+
+          const prompt = interaction.options.getString("prompt");
+
+          try {
+            if (config.aiType != "openai" || !config.openAIToken) {
+              return await interaction.editReply(
+                "Sorry, this feature is only available with OpenAI. Please contact the bot owner to enable it.",
+              );
+            }
+            if (!this.openai) {
+              this.openai = new OpenAI({
+                apiKey: config.openAIToken,
+              });
+            }
+
+            const response = await this.openai.images.generate({
+              model: "dall-e-2",
+              prompt: prompt,
+              n: 1,
+              size: "512x512",
+            });
+
+            const image_url = response.data[0].url;
+
+            // Fetch the image data
+            const imageResponse = await axios.get(image_url, {
+              responseType: "arraybuffer",
+            });
+            const buffer = Buffer.from(imageResponse.data, "binary");
+
+            // Send the generated image
+            await interaction.editReply({
+              content: `Here's an image of **${prompt}**.`,
+              files: [
+                {
+                  attachment: image_url,
+                  name: "dalle2.png",
+                },
+              ],
+            });
+          } catch (error) {
+            console.error("Error generating image:", error);
+            await interaction.editReply(
+              "Sorry, there was an error generating your image. Please try again later.",
+            );
+          }
         },
       );
     }
@@ -301,6 +388,173 @@ class CommandHandler {
     function isModeratorAllowed(member) {
       return member.roles.cache.some((role) =>
         modSettings.modRoles.includes(role.id),
+      );
+    }
+
+    if (modSettings.giveawayCommand) {
+      this.addCommand(
+        new SlashCommandBuilder()
+          .setName("giveaway")
+          .setDescription("Start a giveaway")
+          .addStringOption((option) =>
+            option
+              .setName("prize")
+              .setDescription("The prize for the giveaway")
+              .setRequired(true),
+          )
+          .addIntegerOption((option) =>
+            option
+              .setName("duration")
+              .setDescription("Duration of the giveaway in minutes")
+              .setRequired(true),
+          ),
+        async (interaction) => {
+          if (!isModeratorAllowed(interaction.member)) {
+            return interaction.reply({
+              embeds: [
+                {
+                  title: "Permission Denied",
+                  description:
+                    "You do not have permission to use this command.",
+                  color: 0xff0000,
+                },
+              ],
+              ephemeral: true,
+            });
+          }
+
+          const prize = interaction.options.getString("prize");
+          const duration = interaction.options.getInteger("duration");
+          const endTime = Math.floor(Date.now() / 1000) + duration * 60;
+
+          const embed = {
+            title: "🎉 Giveaway Started! 🎉",
+            description: `Prize: **${prize}**\nEnds: <t:${endTime}:R>\nReact with 🎉 to enter!`,
+            color: 0x00ff00,
+          };
+
+          await interaction.reply({ embeds: [embed] });
+          const giveawayMessage = await interaction.fetchReply();
+
+          // Add reaction to the message
+          await giveawayMessage.react("🎉");
+
+          // Set a timeout to end the giveaway
+          setTimeout(async () => {
+            const fetchedMessage = await interaction.channel.messages.fetch(
+              giveawayMessage.id,
+            );
+            const reaction = fetchedMessage.reactions.cache.get("🎉");
+
+            // Get users who reacted
+            const users = await reaction.users.fetch();
+            const validEntrants = users.filter((user) => !user.bot);
+
+            if (validEntrants.size === 0) {
+              embed.title = "Giveaway Ended";
+              embed.description = "No one entered the giveaway.";
+              embed.color = 0xff0000;
+            } else {
+              // Select a winner
+              const winner = validEntrants.random();
+
+              embed.title = "🎉 Giveaway Ended! 🎉";
+              embed.description = `Congratulations to ${winner}! You won: **${prize}**!`;
+            }
+
+            await giveawayMessage.edit({ embeds: [embed] });
+          }, duration * 60000); // Convert minutes to milliseconds
+        },
+      );
+    }
+
+    if (modSettings.stickyCommand) {
+      this.addCommand(
+        new SlashCommandBuilder()
+          .setName("sticky")
+          .setDescription("Manage sticky messages")
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("set")
+              .setDescription("Set or update the sticky message")
+              .addStringOption((option) =>
+                option
+                  .setName("message")
+                  .setDescription("The message to stick")
+                  .setRequired(true),
+              ),
+          )
+          .addSubcommand((subcommand) =>
+            subcommand
+              .setName("clear")
+              .setDescription("Clear the sticky message"),
+          ),
+        async (interaction) => {
+          if (!isModeratorAllowed(interaction.member)) {
+            return interaction.reply({
+              embeds: [
+                {
+                  title: "Permission Denied",
+                  description:
+                    "You do not have permission to use this command.",
+                  color: 0xff0000,
+                },
+              ],
+              ephemeral: true,
+            });
+          }
+
+          const subcommand = interaction.options.getSubcommand();
+          const channelId = interaction.channelId;
+
+          if (subcommand === "set") {
+            const message = interaction.options.getString("message");
+            const embed = {
+              description: message,
+              color: 0x00ff00,
+              footer: { text: "Sticky Message" },
+            };
+
+            let stickyMessage;
+            if (this.stickyMessages.has(channelId)) {
+              stickyMessage = await interaction.channel.messages.fetch(
+                this.stickyMessages.get(channelId),
+              );
+              await stickyMessage.edit({ embeds: [embed] });
+            } else {
+              stickyMessage = await interaction.channel.send({
+                embeds: [embed],
+              });
+              this.stickyMessages.set(channelId, stickyMessage.id);
+            }
+
+            await interaction.reply({
+              content: "Sticky message set successfully!",
+              ephemeral: true,
+            });
+          } else if (subcommand === "clear") {
+            if (this.stickyMessages.has(channelId)) {
+              const messageId = this.stickyMessages.get(channelId);
+              try {
+                const message =
+                  await interaction.channel.messages.fetch(messageId);
+                await message.delete();
+              } catch (error) {
+                console.error("Failed to delete sticky message:", error);
+              }
+              this.stickyMessages.delete(channelId);
+              await interaction.reply({
+                content: "Sticky message cleared successfully!",
+                ephemeral: true,
+              });
+            } else {
+              await interaction.reply({
+                content: "There's no sticky message in this channel.",
+                ephemeral: true,
+              });
+            }
+          }
+        },
       );
     }
 
