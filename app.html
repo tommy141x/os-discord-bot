@@ -81,8 +81,55 @@
             }
         </style>
         <script>
-            // On page load or when changing themes, best to add inline in `head` to avoid FOUC
             let settings = {};
+            let guildData = {};
+            let stats = {};
+            let controlLogs = {};
+            let leaderboard = {};
+            let logs = {};
+
+            const apiFetchComplete = new Event("apiFetchComplete");
+
+            let fetchedAPIData = {};
+            async function fetchAPIData(tryCache = true) {
+                if (!(tryCache && Object.keys(fetchedAPIData).length > 0)) {
+                    await fetch("/api/settings")
+                        .then((response) => response.json())
+                        .then((settingsData) => {
+                            fetchedAPIData.settings = settingsData;
+                        });
+                    await fetch("/api/guild")
+                        .then((response) => response.json())
+                        .then((fetchedGuildData) => {
+                            let {
+                                guildData,
+                                stats,
+                                leaderboard,
+                                controlLogs,
+                                logs,
+                            } = fetchedGuildData;
+                            fetchedAPIData.guildData = guildData;
+                            fetchedAPIData.stats = stats;
+                            fetchedAPIData.leaderboard = leaderboard;
+                            fetchedAPIData.logs = logs;
+                            fetchedAPIData.controlLogs = controlLogs;
+                        })
+                        .catch((error) => {
+                            console.error("Error fetching data:", error);
+                            notify("Failed to load data", "danger");
+                        });
+                }
+                return {
+                    settings: fetchedAPIData.settings || {},
+                    guildData: fetchedAPIData.guildData || {},
+                    stats: fetchedAPIData.stats || {},
+                    controlLogs: fetchedAPIData.controlLogs || {},
+                    leaderboard: fetchedAPIData.leaderboard || {},
+                    logs: fetchedAPIData.logs || {},
+                };
+            }
+
+            // On page load or when changing themes, best to add inline in `head` to avoid FOUC
             if (
                 localStorage.getItem("color-theme") === "dark" ||
                 (!("color-theme" in localStorage) &&
@@ -92,7 +139,19 @@
             } else {
                 document.documentElement.classList.remove("dark");
             }
-            $(window).on("load", function () {
+
+            $(window).on("load", async function () {
+                await fetchAPIData();
+                settings = fetchedAPIData.settings || {};
+                guildData = fetchedAPIData.guildData || {};
+                stats = fetchedAPIData.stats || {};
+                controlLogs = fetchedAPIData.controlLogs || {};
+                leaderboard = fetchedAPIData.leaderboard || {};
+                logs = fetchedAPIData.logs || {};
+                document.dispatchEvent(apiFetchComplete);
+            });
+
+            document.addEventListener("apiFetchComplete", function () {
                 setTimeout(() => {
                     $("#preloader").fadeOut(1000, function () {
                         $(this).hide();
@@ -406,7 +465,7 @@
 
                 // Call this function when the page loads
                 document.addEventListener(
-                    "DOMContentLoaded",
+                    "apiFetchComplete",
                     updateUserProfile,
                 );
             </script>
@@ -642,249 +701,227 @@
             </div>
 
             <script>
-                document.addEventListener("DOMContentLoaded", async () => {
-                    try {
-                        const response = await fetch("/api/guild");
-                        let { guildData, stats, leaderboard, logs } =
-                            await response.json();
+                document.addEventListener("apiFetchComplete", async () => {
+                    // Update guild information
+                    document.getElementById("guildIcon").src = guildData.icon;
+                    document.getElementById("guildName").textContent =
+                        guildData.name;
 
-                        // Update guild information
-                        document.getElementById("guildIcon").src =
-                            guildData.icon;
-                        document.getElementById("guildName").textContent =
-                            guildData.name;
+                    logs = logs || [];
+                    stats = stats || [];
+                    leaderboard = leaderboard || [];
 
-                        logs = logs || [];
-                        stats = stats || [];
-                        leaderboard = leaderboard || [];
+                    const totalMembers =
+                        stats[stats.length - 1]?.totalMembers || 0;
+                    const onlineMembers =
+                        stats[stats.length - 1]?.onlineMembers || 0;
 
-                        const totalMembers =
-                            stats[stats.length - 1]?.totalMembers || 0;
-                        const onlineMembers =
-                            stats[stats.length - 1]?.onlineMembers || 0;
+                    document.getElementById("totalMembersText").textContent =
+                        `${totalMembers} Total Members`;
+                    document.getElementById("onlineMembersText").textContent =
+                        `${onlineMembers} Online Members`;
+                    const now = new Date();
+                    const past24Hours = new Date(
+                        now.getTime() - 24 * 60 * 60 * 1000,
+                    );
 
-                        document.getElementById(
-                            "totalMembersText",
-                        ).textContent = `${totalMembers} Total Members`;
-                        document.getElementById(
-                            "onlineMembersText",
-                        ).textContent = `${onlineMembers} Online Members`;
-                        const now = new Date();
-                        const past24Hours = new Date(
-                            now.getTime() - 24 * 60 * 60 * 1000,
-                        );
+                    const messagesLast24Hours = logs.filter(
+                        (log) =>
+                            log.type === "new-message" &&
+                            new Date(log.timestamp) >= past24Hours,
+                    ).length;
 
-                        const messagesLast24Hours = logs.filter(
-                            (log) =>
-                                log.type === "new-message" &&
-                                new Date(log.timestamp) >= past24Hours,
-                        ).length;
+                    document.getElementById("messages24HoursText").textContent =
+                        `Messages (Last 24 Hours): ${messagesLast24Hours}`;
 
-                        document.getElementById(
-                            "messages24HoursText",
-                        ).textContent =
-                            `Messages (Last 24 Hours): ${messagesLast24Hours}`;
+                    // Filter stats to only include data from the past 24 hours
+                    const filteredStats = stats.filter(
+                        (stat) => new Date(stat.timestamp) >= past24Hours,
+                    );
 
-                        // Filter stats to only include data from the past 24 hours
-                        const filteredStats = stats.filter(
-                            (stat) => new Date(stat.timestamp) >= past24Hours,
-                        );
+                    const filteredLogs = logs.filter(
+                        (log) => new Date(log.timestamp) >= past24Hours,
+                    );
 
-                        const filteredLogs = logs.filter(
-                            (log) => new Date(log.timestamp) >= past24Hours,
-                        );
+                    // Chart Data
+                    const labels = downsampleArray(
+                        filteredStats.map((stat) =>
+                            new Date(stat.timestamp).toLocaleTimeString(),
+                        ),
+                    );
+                    const totalMembersData = downsampleArray(
+                        stats.map((stat) => stat.totalMembers),
+                    );
 
-                        // Chart Data
-                        const labels = downsampleArray(
-                            filteredStats.map((stat) =>
-                                new Date(stat.timestamp).toLocaleTimeString(),
-                            ),
-                        );
-                        const totalMembersData = downsampleArray(
-                            stats.map((stat) => stat.totalMembers),
-                        );
+                    const onlineMembersData = downsampleArray(
+                        filteredStats.map((stat) => stat.onlineMembers),
+                    );
+                    const messagesData = createMessageDataFor24Hours(logs, 10);
 
-                        const onlineMembersData = downsampleArray(
-                            filteredStats.map((stat) => stat.onlineMembers),
-                        );
-                        const messagesData = createMessageDataFor24Hours(
-                            logs,
-                            10,
-                        );
-
-                        console.log(messagesData);
-
-                        function downsampleArray(arr, maxPoints = 10) {
-                            if (arr.length <= maxPoints) {
-                                return arr;
-                            }
-
-                            const step = Math.ceil(arr.length / maxPoints);
-                            const downsampledStats = [];
-
-                            for (let i = 0; i < arr.length; i += step) {
-                                downsampledStats.push(arr[i]);
-                            }
-
-                            return downsampledStats;
+                    function downsampleArray(arr, maxPoints = 10) {
+                        if (arr.length <= maxPoints) {
+                            return arr;
                         }
 
-                        function downsampleArrayWithSumming(
-                            arr,
-                            maxPoints = 10,
-                        ) {
-                            if (arr.length <= maxPoints) {
-                                return arr;
-                            }
-                            const groupSize = Math.ceil(arr.length / maxPoints);
-                            const downsampledArray = [];
-                            for (let i = 0; i < arr.length; i += groupSize) {
-                                const group = arr.slice(i, i + groupSize);
-                                const sum = group.reduce(
-                                    (sum, value) => sum + value,
-                                    0,
-                                );
-                                downsampledArray.push(sum);
-                            }
-                            return downsampledArray;
+                        const step = Math.ceil(arr.length / maxPoints);
+                        const downsampledStats = [];
+
+                        for (let i = 0; i < arr.length; i += step) {
+                            downsampledStats.push(arr[i]);
                         }
 
-                        function createMessageDataFor24Hours(
-                            logs,
-                            numPeriods = 10,
-                        ) {
-                            const now = new Date();
-                            const past24Hours = new Date(
-                                now - 24 * 60 * 60 * 1000,
+                        return downsampledStats;
+                    }
+
+                    function downsampleArrayWithSumming(arr, maxPoints = 10) {
+                        if (arr.length <= maxPoints) {
+                            return arr;
+                        }
+                        const groupSize = Math.ceil(arr.length / maxPoints);
+                        const downsampledArray = [];
+                        for (let i = 0; i < arr.length; i += groupSize) {
+                            const group = arr.slice(i, i + groupSize);
+                            const sum = group.reduce(
+                                (sum, value) => sum + value,
+                                0,
                             );
-                            const periodDuration =
-                                (24 * 60 * 60 * 1000) / numPeriods; // duration of each period in milliseconds
+                            downsampledArray.push(sum);
+                        }
+                        return downsampledArray;
+                    }
 
-                            const messagesData = new Array(numPeriods).fill(0);
+                    function createMessageDataFor24Hours(
+                        logs,
+                        numPeriods = 10,
+                    ) {
+                        const now = new Date();
+                        const past24Hours = new Date(now - 24 * 60 * 60 * 1000);
+                        const periodDuration =
+                            (24 * 60 * 60 * 1000) / numPeriods; // duration of each period in milliseconds
 
-                            logs.forEach((log) => {
-                                if (log.type === "new-message") {
-                                    const logTime = new Date(log.timestamp);
-                                    if (
-                                        logTime >= past24Hours &&
-                                        logTime <= now
-                                    ) {
-                                        const periodIndex = Math.floor(
-                                            (logTime - past24Hours) /
-                                                periodDuration,
-                                        );
-                                        if (periodIndex < numPeriods) {
-                                            messagesData[periodIndex]++;
-                                        }
+                        const messagesData = new Array(numPeriods).fill(0);
+
+                        logs.forEach((log) => {
+                            if (log.type === "new-message") {
+                                const logTime = new Date(log.timestamp);
+                                if (logTime >= past24Hours && logTime <= now) {
+                                    const periodIndex = Math.floor(
+                                        (logTime - past24Hours) /
+                                            periodDuration,
+                                    );
+                                    if (periodIndex < numPeriods) {
+                                        messagesData[periodIndex]++;
                                     }
                                 }
-                            });
+                            }
+                        });
 
-                            return messagesData;
-                        }
+                        return messagesData;
+                    }
 
-                        // Function to create and configure a Chartist line chart
-                        function createChart(chartId, labels, seriesData) {
-                            var chart = new Chartist.Line(
-                                chartId,
-                                {
-                                    labels: labels,
-                                    series: [seriesData],
-                                },
-                                {
-                                    showPoint: true,
-                                    lineSmooth: Chartist.Interpolation.simple({
-                                        divisor: 2,
-                                    }),
-                                    showArea: true,
-                                    fullWidth: true,
+                    // Function to create and configure a Chartist line chart
+                    function createChart(chartId, labels, seriesData) {
+                        var chart = new Chartist.Line(
+                            chartId,
+                            {
+                                labels: labels,
+                                series: [seriesData],
+                            },
+                            {
+                                showPoint: true,
+                                lineSmooth: Chartist.Interpolation.simple({
+                                    divisor: 2,
+                                }),
+                                showArea: true,
+                                fullWidth: true,
+                                showLabel: false,
+                                axisX: {
+                                    showGrid: false,
                                     showLabel: false,
-                                    axisX: {
-                                        showGrid: false,
-                                        showLabel: false,
-                                        offset: 0,
-                                    },
-                                    axisY: {
-                                        showGrid: false,
-                                        showLabel: false,
-                                        offset: 0,
-                                    },
-                                    chartPadding: 7,
-                                    low: 0,
-                                    plugins: [
-                                        Chartist.plugins.ctPointLabels({
-                                            textAnchor: "middle",
-                                            labelInterpolationFnc: function (
-                                                value,
-                                            ) {
-                                                return Math.round(value) || 0;
-                                            },
-                                        }),
-                                    ],
+                                    offset: 0,
                                 },
-                            );
-
-                            chart.on("draw", function (data) {
-                                if (
-                                    data.type === "line" ||
-                                    data.type === "area"
-                                ) {
-                                    data.element.animate({
-                                        d: {
-                                            begin: 2000 * data.index,
-                                            dur: 2000,
-                                            from: data.path
-                                                .clone()
-                                                .scale(1, 0)
-                                                .translate(
-                                                    0,
-                                                    data.chartRect.height(),
-                                                )
-                                                .stringify(),
-                                            to: data.path.clone().stringify(),
-                                            easing: Chartist.Svg.Easing
-                                                .easeOutQuint,
+                                axisY: {
+                                    showGrid: false,
+                                    showLabel: false,
+                                    offset: 0,
+                                },
+                                chartPadding: {
+                                    top: 40,
+                                    right: 0,
+                                    bottom: 6,
+                                    left: 0,
+                                },
+                                low: 0,
+                                plugins: [
+                                    Chartist.plugins.ctPointLabels({
+                                        textAnchor: "middle",
+                                        labelInterpolationFnc: function (
+                                            value,
+                                        ) {
+                                            return Math.round(value) || 0;
                                         },
-                                    });
-                                }
-                            });
-
-                            return chart;
-                        }
-
-                        // Create charts using the function
-                        var totalMembersChart = createChart(
-                            "#totalMembersChart",
-                            labels,
-                            totalMembersData,
-                        );
-                        var onlineMembersChart = createChart(
-                            "#onlineMembersChart",
-                            labels,
-                            onlineMembersData,
-                        );
-                        var messagesChart = createChart(
-                            "#messagesChart",
-                            labels,
-                            messagesData,
+                                    }),
+                                ],
+                            },
                         );
 
-                        // Update Leaderboards
-                        const topMessagePointsTable = document.getElementById(
-                            "topMessagePointsTable",
-                        );
-                        const topVoicePointsTable = document.getElementById(
-                            "topVoicePointsTable",
-                        );
-                        const topTotalPointsTable = document.getElementById(
-                            "topTotalPointsTable",
-                        );
+                        chart.on("draw", function (data) {
+                            if (data.type === "line" || data.type === "area") {
+                                data.element.animate({
+                                    d: {
+                                        begin: 2000 * data.index,
+                                        dur: 2000,
+                                        from: data.path
+                                            .clone()
+                                            .scale(1, 0)
+                                            .translate(
+                                                0,
+                                                data.chartRect.height(),
+                                            )
+                                            .stringify(),
+                                        to: data.path.clone().stringify(),
+                                        easing: Chartist.Svg.Easing
+                                            .easeOutQuint,
+                                    },
+                                });
+                            }
+                        });
 
-                        leaderboard.topMessagePoints.forEach(
-                            (member, index) => {
-                                topMessagePointsTable.insertAdjacentHTML(
-                                    "beforeend",
-                                    `
+                        return chart;
+                    }
+
+                    // Create charts using the function
+                    var totalMembersChart = createChart(
+                        "#totalMembersChart",
+                        labels,
+                        totalMembersData,
+                    );
+                    var onlineMembersChart = createChart(
+                        "#onlineMembersChart",
+                        labels,
+                        onlineMembersData,
+                    );
+                    var messagesChart = createChart(
+                        "#messagesChart",
+                        labels,
+                        messagesData,
+                    );
+
+                    // Update Leaderboards
+                    const topMessagePointsTable = document.getElementById(
+                        "topMessagePointsTable",
+                    );
+                    const topVoicePointsTable = document.getElementById(
+                        "topVoicePointsTable",
+                    );
+                    const topTotalPointsTable = document.getElementById(
+                        "topTotalPointsTable",
+                    );
+
+                    leaderboard.topMessagePoints.forEach((member, index) => {
+                        topMessagePointsTable.insertAdjacentHTML(
+                            "beforeend",
+                            `
                                     <tr>
                                         <td style="display: flex; align-items: center; vertical-align: middle;" class="text-foreground">
                                             <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
@@ -896,18 +933,17 @@
                                     </tr>
 
                             `,
-                                );
-                            },
                         );
+                    });
 
-                        leaderboard.topVoicePoints.forEach((member, index) => {
-                            const hours = Math.floor(member.voiceTime / 3600);
-                            const minutes = Math.floor(
-                                (member.voiceTime % 3600) / 60,
-                            );
-                            topVoicePointsTable.insertAdjacentHTML(
-                                "beforeend",
-                                `
+                    leaderboard.topVoicePoints.forEach((member, index) => {
+                        const hours = Math.floor(member.voiceTime / 3600);
+                        const minutes = Math.floor(
+                            (member.voiceTime % 3600) / 60,
+                        );
+                        topVoicePointsTable.insertAdjacentHTML(
+                            "beforeend",
+                            `
                                 <tr>
                                     <td style="display: flex; align-items: center; vertical-align: middle;" class="text-foreground">
                                         <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
@@ -919,13 +955,13 @@
                                 </tr>
 
                             `,
-                            );
-                        });
+                        );
+                    });
 
-                        leaderboard.topTotalPoints.forEach((member, index) => {
-                            topTotalPointsTable.insertAdjacentHTML(
-                                "beforeend",
-                                `
+                    leaderboard.topTotalPoints.forEach((member, index) => {
+                        topTotalPointsTable.insertAdjacentHTML(
+                            "beforeend",
+                            `
                                 <tr>
                                     <td style="display: flex; align-items: center; vertical-align: middle;" class="text-foreground">
                                         <img src="${member.avatarURL}" alt="${member.displayName}" width="32" height="32" class="uk-border-circle" style="margin-right: 8px;">
@@ -937,11 +973,8 @@
                                 </tr>
 
                             `,
-                            );
-                        });
-                    } catch (error) {
-                        console.error("Error fetching guild data:", error);
-                    }
+                        );
+                    });
                 });
             </script>
         </div>
@@ -1089,10 +1122,7 @@
             </div>
 
             <script>
-                document.addEventListener("DOMContentLoaded", async () => {
-                    const response = await fetch(`/api/guild`);
-                    const { guildData } = await response.json();
-
+                document.addEventListener("apiFetchComplete", async () => {
                     // Populate the system channel dropdown
                     const systemChannelDropdown =
                         document.getElementById("systemChannelId");
@@ -1554,17 +1584,11 @@
                 };
 
                 // API calls
-                const fetchChannels = async () => {
-                    try {
-                        const response = await fetch("/api/guild");
-                        const guildData = await response.json();
-                        channels = guildData.guildData.channels.filter(
-                            (channel) => channel.type === 0,
-                        );
-                        populateChannelDropdown();
-                    } catch (error) {
-                        console.error("Failed to fetch channels", error);
-                    }
+                const fetchChannels = () => {
+                    channels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
+                    );
+                    populateChannelDropdown();
                 };
 
                 const fetchEmbeds = async () => {
@@ -1893,7 +1917,6 @@
 
                 // Main initialization
                 const initEmbeds = () => {
-                    ponds = initializeAllFilePonds();
                     fetchChannels();
                     fetchEmbeds();
                     setupEventListeners();
@@ -1901,7 +1924,8 @@
                 };
 
                 // Run initialization when DOM is loaded
-                window.addEventListener("DOMContentLoaded", initEmbeds);
+                ponds = initializeAllFilePonds();
+                window.addEventListener("apiFetchComplete", initEmbeds);
             </script>
         </div>
 
@@ -1994,7 +2018,7 @@
         </div>
 
         <script>
-            document.addEventListener("DOMContentLoaded", () => {
+            document.addEventListener("apiFetchComplete", () => {
                 const elements = {
                     utilityCards: document.getElementById("utilityCards"),
                     customCommandsContainer: document.getElementById(
@@ -2010,23 +2034,6 @@
                 };
 
                 let editingIndex = -1;
-
-                const fetchSettings = async () => {
-                    const response = await fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((data) => {
-                            settings.utilitySettings = data.utilitySettings;
-                            renderCards();
-                            renderCustomCommands();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching settings:", error);
-                            UIkit.notification({
-                                message: "Failed to load utility settings",
-                                status: "danger",
-                            });
-                        });
-                };
 
                 const renderCards = () => {
                     elements.utilityCards.innerHTML = "";
@@ -2206,7 +2213,8 @@
                 elements.saveButton.addEventListener("click", saveSettings);
 
                 // Initialize
-                fetchSettings();
+                renderCards();
+                renderCustomCommands();
             });
         </script>
 
@@ -2259,44 +2267,21 @@
         </div>
 
         <script>
-            document.addEventListener("DOMContentLoaded", () => {
+            document.addEventListener("apiFetchComplete", () => {
                 const moderationCards =
                     document.getElementById("moderationCards");
                 const saveButton = document.getElementById("saveModSettings");
                 const modRoleInput = document.getElementById("modRoleInput");
                 const addModRoleButton = document.getElementById("addModRole");
                 const modRoleList = document.getElementById("modRoleList");
-                let guildData;
-
-                // Fetch current settings
-                fetch("/api/settings")
-                    .then((response) => response.json())
-                    .then((settingsData) => {
-                        settings.moderationSettings =
-                            settingsData.moderationSettings;
-
-                        // Fetch guild data after settings are fetched
-                        return fetch("/api/guild");
-                    })
-                    .then((response) => response.json())
-                    .then((guildDataResponse) => {
-                        guildData = guildDataResponse.guildData;
-
-                        populateRoleDropdown();
-                        renderModRoles();
-                        renderCards();
-                    })
-                    .catch((error) => {
-                        console.error("Error fetching data:", error);
-                        UIkit.notification({
-                            message: "Failed to load data",
-                            status: "danger",
-                        });
-                    });
+                populateRoleDropdown();
+                renderModRoles();
+                renderCards();
 
                 function populateRoleDropdown() {
                     modRoleInput.innerHTML =
                         '<option value="">Select a role</option>';
+                    console.log(guildData);
                     guildData.roles.forEach((role) => {
                         const option = document.createElement("option");
                         option.value = role.id;
@@ -2578,37 +2563,15 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const autoModPage = document.getElementById("automod");
                     const saveAutoModButton = document.getElementById(
                         "saveAutoModSettings",
                     );
-                    let guildData;
-
-                    // Fetch current settings and guild data
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.autoModSettings =
-                                settingsData.autoModSettings;
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((fetchedGuildData) => {
-                            guildData = fetchedGuildData.guildData;
-                            // Filter text channels
-                            guildData.textChannels = guildData.channels.filter(
-                                (channel) => channel.type === 0,
-                            );
-                            renderAutoModSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
+                    guildData.textChannels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
+                    );
+                    renderAutoModSettings();
 
                     function renderAutoModSettings() {
                         populateDropdown(
@@ -2888,44 +2851,20 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const welcomeGoodbyePage =
                         document.getElementById("welcome-goodbye");
                     const saveButton = document.getElementById(
                         "saveWelcomeGoodbyeSettings",
                     );
-                    let guildData;
 
-                    // Fetch current settings
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.welcomeGoodbyeSettings =
-                                settingsData.welcomeGoodbyeSettings;
+                    // Filter text channels
+                    guildData.textChannels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
+                    );
 
-                            // Fetch guild data after settings are fetched
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((fetchedGuildData) => {
-                            guildData = fetchedGuildData.guildData;
-
-                            // Filter text channels
-                            guildData.textChannels = guildData.channels.filter(
-                                (channel) => channel.type === 0,
-                            );
-
-                            populateChannelDropdowns();
-                            renderWelcomeGoodbyeSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
-
+                    populateChannelDropdowns();
+                    renderWelcomeGoodbyeSettings();
                     function populateChannelDropdowns() {
                         const joinChannelDropdown =
                             document.getElementById("joinChannelId");
@@ -3057,7 +2996,7 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const autoResponderPage =
                         document.getElementById("auto-responder");
                     const autoResponderList =
@@ -3069,30 +3008,10 @@
                     );
                     let textChannels = [];
 
-                    // Fetch current settings and guild data
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.autoResponderSettings =
-                                settingsData.autoResponderSettings;
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((fetchedGuildData) => {
-                            guildData = fetchedGuildData.guildData;
-
-                            textChannels = guildData.channels.filter(
-                                (channel) => channel.type === 0,
-                            );
-                            renderAutoResponderSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
+                    textChannels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
+                    );
+                    renderAutoResponderSettings();
 
                     function renderAutoResponderSettings() {
                         autoResponderList.innerHTML = "";
@@ -3380,7 +3299,7 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const autoRolesPage = document.getElementById("auto-roles");
                     const saveAutoRoleButton = document.getElementById(
                         "saveAutoRoleSettings",
@@ -3391,29 +3310,8 @@
                         document.getElementById("autoRoleSelector");
                     const autoRoleList =
                         document.getElementById("autoRoleList");
-                    let guildData;
-
-                    // Fetch current settings and guild data
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.autoRoleSettings =
-                                settingsData.autoRoleSettings;
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((fetchedGuildData) => {
-                            guildData = fetchedGuildData.guildData;
-                            populateRoleSelector();
-                            renderAutoRoleSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
+                    populateRoleSelector();
+                    renderAutoRoleSettings();
 
                     function populateRoleSelector() {
                         autoRoleSelector.innerHTML =
@@ -3525,64 +3423,45 @@
                 </button>
             </div>
             <script>
-                fetch("/api/settings")
-                    .then((response) => response.json())
-                    .then((data) => {
-                        settings.logSettings = data.logSettings || {};
-                        const logSettingsCards =
-                            document.getElementById("logSettingsCards");
+                document.addEventListener("apiFetchComplete", () => {
+                    const logSettingsCards =
+                        document.getElementById("logSettingsCards");
 
-                        // Fetch channels
-                        fetch("/api/guild")
-                            .then((response) => response.json())
-                            .then((data) => {
-                                guildData = data.guildData;
-                                const textChannels = guildData.channels.filter(
-                                    (channel) => channel.type === 0,
-                                );
-
-                                // Render log settings cards
-                                Object.entries(settings.logSettings).forEach(
-                                    ([key, value]) => {
-                                        const card =
-                                            document.createElement("div");
-                                        card.innerHTML = `
-                        <div class="uk-card uk-card-default uk-card-body">
-                          <div class="uk-grid-small uk-flex-middle" uk-grid>
-                            <div class="uk-width-expand">
-                              <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2")}</h3>
-                            </div>
-                            <div class="uk-width-auto">
-                              <label class="uk-switch">
-                                <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? "checked" : ""} ${key === "logMessageCreation" || key === "logMemberLeaves" || key === "logVoiceStateUpdates" || key === "logMemberJoins" ? "disabled" : ""}>
-                                <span class="uk-switch-slider"></span>
-                              </label>
-                            </div>
-                          </div>
-                          <div class="uk-margin-top">
-                            <label class="uk-form-label" for="${key}ChannelId">Log Channel:</label>
-                            <input type="hidden" id="logSetting" value="${key}">
-                            <select class="uk-select log-setting-channel-id" id="${key}ChannelId">
-                              <option value="">No channel</option>
-                              ${textChannels.map((channel) => `<option value="${channel.id}" ${channel.id === value.channelId ? "selected" : ""}>#${channel.name} - (${channel.id})</option>`).join("")}
-                            </select>
-                          </div>
-                        </div>
-                      `;
-                                        logSettingsCards.appendChild(card);
-                                    },
-                                );
-                            })
-                            .catch((error) =>
-                                console.error(
-                                    "Error fetching guild data:",
-                                    error,
-                                ),
-                            );
-                    })
-                    .catch((error) =>
-                        console.error("Error fetching settings:", error),
+                    const textChannels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
                     );
+
+                    // Render log settings cards
+                    Object.entries(settings.logSettings).forEach(
+                        ([key, value]) => {
+                            const card = document.createElement("div");
+                            card.innerHTML = `
+                            <div class="uk-card uk-card-default uk-card-body">
+                              <div class="uk-grid-small uk-flex-middle" uk-grid>
+                                <div class="uk-width-expand">
+                                  <h3 class="uk-card-title uk-margin-remove-bottom">${key.charAt(0).toUpperCase() + key.slice(1).replace(/([a-z])([A-Z])/g, "$1 $2")}</h3>
+                                </div>
+                                <div class="uk-width-auto">
+                                  <label class="uk-switch">
+                                    <input class="uk-checkbox log-setting-checkbox" type="checkbox" ${value.enabled ? "checked" : ""} ${key === "logMessageCreation" || key === "logMemberLeaves" || key === "logVoiceStateUpdates" || key === "logMemberJoins" ? "disabled" : ""}>
+                                    <span class="uk-switch-slider"></span>
+                                  </label>
+                                </div>
+                              </div>
+                              <div class="uk-margin-top">
+                                <label class="uk-form-label" for="${key}ChannelId">Log Channel:</label>
+                                <input type="hidden" id="logSetting" value="${key}">
+                                <select class="uk-select log-setting-channel-id" id="${key}ChannelId">
+                                  <option value="">No channel</option>
+                                  ${textChannels.map((channel) => `<option value="${channel.id}" ${channel.id === value.channelId ? "selected" : ""}>#${channel.name} - (${channel.id})</option>`).join("")}
+                                </select>
+                              </div>
+                            </div>
+                          `;
+                            logSettingsCards.appendChild(card);
+                        },
+                    );
+                });
 
                 // Save log settings
                 const saveLogSettingsButton =
@@ -3654,7 +3533,7 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const temporaryChannelsPage =
                         document.getElementById("temporary-channels");
                     const temporaryChannelList = document.getElementById(
@@ -3667,30 +3546,10 @@
                         "saveTemporaryChannelSettings",
                     );
 
-                    // Fetch current settings
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.temporaryChannelSettings =
-                                settingsData.temporaryChannelSettings;
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((fetchedGuildData) => {
-                            guildData = fetchedGuildData.guildData;
-                            // Filter voice channels
-                            guildData.voiceChannels = guildData.channels.filter(
-                                (channel) => channel.type === 2,
-                            );
-                            renderTemporaryChannelSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
+                    guildData.voiceChannels = guildData.channels.filter(
+                        (channel) => channel.type === 2,
+                    );
+                    renderTemporaryChannelSettings();
 
                     function renderTemporaryChannelSettings() {
                         temporaryChannelList.innerHTML = "";
@@ -3916,41 +3775,19 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const aiSettingsPage =
                         document.getElementById("ai-settings");
                     const saveButton =
                         document.getElementById("saveAiSettings");
-                    let guildData;
 
-                    // Fetch current settings
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.aiSettings = settingsData.aiSettings;
+                    // Filter text channels
+                    guildData.textChannels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
+                    );
 
-                            // Fetch guild data after settings are fetched
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((guildDataResponse) => {
-                            guildData = guildDataResponse.guildData;
-
-                            // Filter text channels
-                            guildData.textChannels = guildData.channels.filter(
-                                (channel) => channel.type === 0,
-                            );
-
-                            populateChannelDropdown();
-                            renderAiSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
+                    populateChannelDropdown();
+                    renderAiSettings();
 
                     function populateChannelDropdown() {
                         const dropdown = document.getElementById(
@@ -4125,7 +3962,7 @@
             </button>
 
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const socialAlertsPage =
                         document.getElementById("social-alerts");
                     const socialAlertList =
@@ -4135,31 +3972,11 @@
                     const saveSocialAlertButton = document.getElementById(
                         "saveSocialAlertSettings",
                     );
-                    let guildData;
 
-                    // Fetch current settings and guild data
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((settingsData) => {
-                            settings.socialAlertSettings =
-                                settingsData.socialAlertSettings;
-                            return fetch("/api/guild");
-                        })
-                        .then((response) => response.json())
-                        .then((fetchedGuildData) => {
-                            guildData = fetchedGuildData.guildData;
-                            textChannels = guildData.channels.filter(
-                                (channel) => channel.type === 0,
-                            );
-                            renderSocialAlertSettings();
-                        })
-                        .catch((error) => {
-                            console.error("Error fetching data:", error);
-                            UIkit.notification({
-                                message: "Failed to load data",
-                                status: "danger",
-                            });
-                        });
+                    textChannels = guildData.channels.filter(
+                        (channel) => channel.type === 0,
+                    );
+                    renderSocialAlertSettings();
 
                     function renderSocialAlertSettings() {
                         socialAlertList.innerHTML = "";
@@ -4403,54 +4220,38 @@
             </div>
             <script>
                 function loadControlPanelLogs() {
-                    fetch("/api/guild")
-                        .then((response) => response.json())
-                        .then((data) => {
-                            // Populate logs table
-                            const tableBody =
-                                document.getElementById("logs-table-body");
-                            tableBody.innerHTML = ""; // Clear existing content
+                    // Populate logs table
+                    const tableBody =
+                        document.getElementById("logs-table-body");
+                    tableBody.innerHTML = ""; // Clear existing content
 
-                            if (
-                                data.controlLogs &&
-                                data.controlLogs.length > 0
-                            ) {
-                                data.controlLogs.sort(
-                                    (a, b) =>
-                                        new Date(b.timestamp) -
-                                        new Date(a.timestamp),
-                                );
+                    if (controlLogs && controlLogs.length > 0) {
+                        controlLogs.sort(
+                            (a, b) =>
+                                new Date(b.timestamp) - new Date(a.timestamp),
+                        );
 
-                                data.controlLogs.forEach((log) => {
-                                    const row = document.createElement("tr");
+                        controlLogs.forEach((log) => {
+                            const row = document.createElement("tr");
 
-                                    const actionCell =
-                                        document.createElement("td");
-                                    actionCell.innerHTML = `
+                            const actionCell = document.createElement("td");
+                            actionCell.innerHTML = `
                                   <div class="text-foreground" style="font-weight: bold">${log.user} ${log.message}.</div>
                                   <div class="uk-text-muted">${log.email} - (${log.id})</div>
                               `;
 
-                                    const timeCell =
-                                        document.createElement("td");
-                                    timeCell.className =
-                                        "uk-text-right text-foreground";
-                                    timeCell.textContent = formatTimestamp(
-                                        log.timestamp,
-                                    );
+                            const timeCell = document.createElement("td");
+                            timeCell.className =
+                                "uk-text-right text-foreground";
+                            timeCell.textContent = formatTimestamp(
+                                log.timestamp,
+                            );
 
-                                    row.appendChild(actionCell);
-                                    row.appendChild(timeCell);
-                                    tableBody.appendChild(row);
-                                });
-                            }
-                        })
-                        .catch((error) =>
-                            console.error(
-                                "Error loading control panel logs:",
-                                error,
-                            ),
-                        );
+                            row.appendChild(actionCell);
+                            row.appendChild(timeCell);
+                            tableBody.appendChild(row);
+                        });
+                    }
                 }
 
                 function formatTimestamp(timestamp) {
@@ -4477,7 +4278,9 @@
                 }
 
                 // Call this function when the control panel logs page is loaded
-                loadControlPanelLogs();
+                document.addEventListener("apiFetchComplete", () => {
+                    loadControlPanelLogs();
+                });
             </script>
         </div>
         <div id="bot-settings" class="page uk-background uk-padding">
@@ -4556,7 +4359,7 @@
                 Save Bot Settings
             </button>
             <script>
-                document.addEventListener("DOMContentLoaded", () => {
+                document.addEventListener("apiFetchComplete", () => {
                     const botSettingsPage =
                         document.getElementById("bot-settings");
                     const saveBotSettingsButton =
@@ -4570,33 +4373,13 @@
                     const changeIntervalInput =
                         document.getElementById("changeInterval");
 
-                    // Fetch current bot presence settings
-                    fetch("/api/settings")
-                        .then((response) => response.json())
-                        .then((data) => {
-                            // Populate UI with fetched settings
-                            settings.botPresenceSettings =
-                                data.botPresenceSettings;
-                            presenceStatusSelect.value =
-                                settings.botPresenceSettings.status;
-                            changeIntervalInput.value =
-                                settings.botPresenceSettings.changeInterval;
+                    presenceStatusSelect.value =
+                        settings.botPresenceSettings.status;
+                    changeIntervalInput.value =
+                        settings.botPresenceSettings.changeInterval;
 
-                            // Render existing activities
-                            renderActivities(
-                                settings.botPresenceSettings.activities,
-                            );
-                        })
-                        .catch((error) => {
-                            console.error(
-                                "Error fetching bot presence settings:",
-                                error,
-                            );
-                            UIkit.notification({
-                                message: "Failed to load bot presence settings",
-                                status: "danger",
-                            });
-                        });
+                    // Render existing activities
+                    renderActivities(settings.botPresenceSettings.activities);
 
                     // Render activities list
                     function renderActivities(activities) {
@@ -4733,7 +4516,7 @@
             </div>
         </div>
         <script>
-            document.addEventListener("DOMContentLoaded", () => {
+            document.addEventListener("apiFetchComplete", () => {
                 fetch("/api/audit-log")
                     .then((response) => response.json())
                     .then((data) => {
@@ -4772,20 +4555,7 @@
         </script>
 
         <script>
-            function showDiv(route) {
-                // Hide all views
-                document.querySelectorAll(".page").forEach((page) => {
-                    page.style.display = "none";
-                });
-                // Show the correct view
-                document.getElementById(route).style.display = "block";
-            }
-
-            function logout() {
-                fetch("/logout")
-                    .then(() => (window.location.href = "/login"))
-                    .catch((error) => console.error("Error:", error));
-            }
+            showDiv("overview");
 
             // Adding click event to switch selection on click
             document.querySelectorAll(".sidebar-menu > *").forEach((item) => {
@@ -4803,8 +4573,29 @@
                 });
             });
 
+            function showDiv(route) {
+                // Hide all views
+                document.querySelectorAll(".page").forEach((page) => {
+                    page.style.display = "none";
+                });
+                // Show the correct view
+                document.getElementById(route).style.display = "block";
+            }
+
+            function notify(message, status) {
+                UIkit.notification({
+                    message: message,
+                    status: status,
+                });
+            }
+
+            function logout() {
+                fetch("/logout")
+                    .then(() => (window.location.href = "/login"))
+                    .catch((error) => console.error("Error:", error));
+            }
+
             // Show the default view
-            showDiv("overview");
         </script>
         <script src="https://cdn.jsdelivr.net/npm/uikit@3.21.5/dist/js/uikit.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/uikit@3.21.5/dist/js/uikit-icons.min.js"></script>
